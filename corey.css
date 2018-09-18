@@ -1,42 +1,91 @@
-body {font-family: verdana, arial; background: white; margin-top: 3px; font-size:12px;}
-
-a {color:#0000ff; font-size: 12px; text-decoration: none; }
-a:visited {color:#0000ff; font-size: 12px; text-decoration: none; }
-a:hover {color:#ff6633; font-size: 12px; text-decoration: none; }
-
-
-ul {font-size: 12px;}
-td {font-size: 12px}
-p {font-size: 12px;}
-div {font-size: 12px;}
-
-li {list-style-position: inside; font-size: 12px; }
-
-.banner {
-	padding-bottom: 8px;
-	padding-top: 0px;
-	padding-left: 8px;
-	padding-right: 8px;
-	border-bottom: 3px solid #00cc00;
-	margin-top: 0px;
-	}
-
-.banner2 {
-	float: left; 	
-	color: #00aa00;
+body {
+	font-family: verdana, arial;
 	font-size: 14px;
-	font-weight: bold;
+	background: #ffffef;
 }
 
-.menu {padding-top: 10px;  padding-bottom: 20px;  padding-right: 10px;  padding-left: 5px;
-background: white; margin-top: 10px; border: 3px solid #ccccdd; }
+a {
+	color: #0000ff;
+	text-decoration: none;
+}
 
-.here {padding-left: 5px; padding-right:1px; font-weight: bold; color:#ff6633; font-family: arial;}
+a:visited {
+	color: #0000ff;
+	text-decoration: none;
+}
 
-.heading {font-size: 12pt; font-weight: bold; color: #009900;}
+a:hover {
+	color: #ff6633;
+	text-decoration: none;
+}
 
-.content {padding: 10px; width: 580px;}
+.content {
+	text-align: left;
+	margin-left: 20px;
+	max-width: 700px;
+}
 
-.footer {border-top: 1px solid #009900; margin-top: 10px;  margin-bottom: 10px; padding-top: 10px;}
+.ad {
+	padding: 30px;
+	border: 1px solid gray;
+	background: white;
+}
 
-.box1 {border: 1px black solid; background: white; padding: 5px;}
+.menu {
+	margin-top: 30px;
+	margin-bottom: 30px;
+}
+
+.menuitem {
+	margin-right: 10px;
+	display: inline-block;
+}
+
+.menuitem a {
+	font-weight: normal;
+	font-size: 16px;
+	letter-spacing: 1px;
+}
+
+.header {
+	margin-top: 20px;
+	margin-bottom: 20px;
+	font-size: 18px;
+	font-weight: bold;
+	color: #009900;
+	letter-spacing: 1px;
+}
+
+.download {
+	border: 1px solid gray;
+	background: lightgreen;
+	padding: 5px;
+}
+
+.donate {
+	border: 1px solid gray;
+	background: lightgreen;
+	padding: 5px;
+}
+
+li {
+	margin-top: 10px;
+	margin-bottom: 10px;
+}
+
+.quote {
+	margin-left: 20px;
+	border: 1px solid gray;
+	background: lightgray;
+	padding: 15px;
+	margin-top: 15px;
+	border-radius: 8px;
+}
+
+.quote::before {
+	content: '"...';
+}
+
+.quote::after {
+	content: '..."';
+}
