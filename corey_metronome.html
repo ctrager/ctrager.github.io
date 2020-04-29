@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Corey's Metronome</title>
+    <style>
+        body {
+            font-family: verdana, arial;
+            font-size: 20px;
+        }
+
+        #my_title {
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+
+        #my_bpm_input {
+            background-color: yellow;
+            font-size: 40px;
+            width: 110px;
+        }
+
+        #my_play_button {
+            background-color: lightgreen;
+            margin-top: 20px;
+            margin-bottom: 20px;
+            font-size: 40px;
+        }
+
+        #my_volume_label {
+            margin-top: 20px;
+        }
+
+        #my_volume_input {
+            font-size: 20px;
+            width: 40px;
+        }
+    </style>
+
+    <script id="my_worker_script_block">
+ 
+        var my_worker_interval
+        
+        self.onmessage = function(event) {
+            if (event.data[0] == "start") {
+                var milliseconds = event.data[1]
+                my_worker_interval = setInterval(function() {postMessage(null)}, milliseconds)
+            }
+            else {
+                // stop
+                clearInterval(my_worker_interval)
+            }
+        };
+
+    </script>
+
+    <script>
+    
+        // We are embedding the base64 encoded sound files into the app
+        woodblock_instrument =
+            "data:audio/mp3;base64,//OEBAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAAGAAAJ2AAqKioqKioqKioqKioqKioqX19fX19fX19fX19fX19fX1+Tk5OTk5OTk5OTk5OTk5OTyMjIyMjIyMjIyMjIyMjIyMj9/f39/f39/f39/f39/f39/f////////////////////8AAABQTEFNRTMuMTAwBHgAAAAAAAAAABUIJAOXJQAB4AAACdgKmyLcAAAAAAAAAAAAAAAAAAAA//PEBAAH1ANTd6AAABF4cpanQRAA/qiGiJVqnKD84XBAEAQg4s+IBoYLvEFYP+JwfeIOH+Xfy4Ph+XB/+Aw/wfB98oCBz/4f/8Th////+D4fxACH6yKsCBZjkDGAAAAABcbgAAwA4D44MQfD8o4TvggCAIKBM+QW8H+Xfw/BD+IAQd+oEDnlAfP5QMf9QIcQHPrB8P5QEP/hhamGqqeQAAwQAwEAiquwh7gPkg+jrJYTQIKjV8HGDbFnCxFvZqdo4GBdReJj4h7aMYVDxhASGPhsTBRYhqGoGIAwYRASmRiorizVX/TwlDdJhucnVuXVTQ9TsoldeWS9FdqaYCAIwMDgMHElUIYMRBMEAUVAVLFbUDtwccOC8Bsnc1x3uuggBtciVSXdxYe/eG7eGUvlbX3zjD7P5clMM1KGleW7hZuROzIKV97kOU1afr27dI4CYjaNYdjlNnzjWmvVqbN0mlK+s2Pq16m5q/javcpIpTyjmTOHEXXTSynywqVLHK1N//PkBOYlwhdPa8fwAEzkKqLfj+ABF7sO1n1cWzlnytjLP+vEbdTK7je//397vOxS9bq/UtY0853CpSWP/6lLS2cd8tUtLuznTU38ppnL/yztczz3N/j25j2l7ndyebach6AAGAgCAQCAYNlN96OU52U0zwHSLSwrwLMBzEjCYnBq12ZgIH1EjTHBHybsYRDBiQXGQBkRAEwMAjYMoMhAIIDzAjGhhEmSx+nUIQ3RgTnWuW6LjTUjQxb1p9HhWL/qFo+DwbBgIAQcgFprSkJoGBoBDDS43B63xEAFGggTxi3MtfpnvMABdIGAZdVqzKETn2dRLDOtIGtsTi7/pjv3DMtpIBYbLaF/Ws03JubpYZryvu3Pfi5ADaQugfx22vw/Zu86/0kgFE0tLYiOFq/y9qX67Wxg2I2a0shilt4z92MP/G7uXLdTLG5DT/VuxF/nKr5Z/Vxsw/r/p90ueF/DePd8y5yVz9uWY269vuGH/vv/+8ZS7OWVb8aXeONam3lf5//VztV5m3zn44a3yrrOZmWIiYWAUGJV56tEa/VTDdiOpzgqlTKWr5fhPryQW1hSQgoN+A1A0DFpwMQFDEouAfQypuYok8bFEipdNkUmLqieTPHloluTJMol1EuGKiLj//PkBE8YtfFJa+fQAC9sFpqvz5ABJCzzyRaIqOInSQTQNHrTuo/SUpNSqp1JTmCnMi2YmyRok6CJcoLZWgqqpGdUYnqKR1j6RVWfWjM0UTVi66ValJJrTPJ6aKi+mpZ1Fmp3oJIqXrb9A3MUdaKKNaFbGczWyS66Lf7IsanC6gZJLSMiiarVKkkm6U9VUzRmStxcVcdkOhpRGNTKJ02RVNLM1L9u2xLPz9JSLmAkAsgA9EAgRcJFiIonlomxsdIKbmxcSRLqBkmYsxdLhwySQRRQWeIEQIpmpQKB8ipMi0JIshp0nZlJVMt1LZSKFzxiibM5dMUjatbUktt2V0UlpJS5M2LRqYKSqTRNUVu9FqKCklr02ZE1SQS9XW5s60Uf+mijrRRRrQXRM2M3UpHqrRWi2pRqsyWZsqXjY4vpJKLpqiyi8XjJIFVVy5mFoASFtzdMM4wuBkUHTo6hcTGiXF3KotAuMIvCwQgFiIQwHLCARAyukbJLTTL6KK3NnpsmpLMS4jSPWmiyiUkXkWJggRuamk/ut66l0UVMs1ZNjJIxLpsswNzJSJxJFSSSTIo1I0t3dZ0462MzA4gV0yOKemdTPGJsY60VLpKUltMDQwPGLV66KLLLib39fWdQrez6//PkBJYVsdtLe6TIAC8z+pLXTJgA0TNSLHTiKKBki9NSCH6mYvHjzUsD/QJtmZd8BQ5uXpTFa5cmnj60DrtjJtbArcpG0ZV5MBYMwF2AbXAe3BSwn8YjIGJElpppmTpqUeTcyXMzx1IhhbRY9YxKhRIgRBEvMbGpeKpOGButp9JIwMTWo6uZF6u5vTYyNky6utymeWeSSWkyNSKy73SMi+eMXPGSR0nDE+gTqKNMxl42QTrRUt1G6RtWiiYlZA+kmttVJzJBRiev69ZxG7tv2ZBmRUiip09Jn/pILQUXmdZRmp+tW8wrPJqVl3hoxnQ4MIRmlzoulo2E4SuMp5OZ531ojCANJBW2XOjAIaqGTrRXq/LxEQqcQFofVdrcHKVtEZQsIdv0rMBR0V2urVCoDE0/lpBCpaeBGWproBV6sBaa8U/AUNW4CUXVQdpi5yMjBLszjtXGVMSiV/WXdDBYYFCM7MafSUuy7uW6X/////mk+mGMLU+v6AoS29LYq2bkMzsq5+tfrLv/F5fPtljjA0QtK8RBZFKa1Nlama1r612Gcv///////3oUyhuaL5MCX/TtfZitaFxCORR9vrSmzNUuEqx1nlTZ1u///////////rkxOxy3KaLPOhp6eG7+//PkBPYhzfFLj8zkhEkz4nL/mdAEFum19ixV+ls1aWglNmtjWtaps61qZrZ0tWtwtQ1GI+WRrEikQsEYfxmULMJX8QqkMJLMChOsjP9NOk0Cyo9i6RIFISBrOD6t0MCSf52RCEMl7ATMAABgYBCpnDZQNQEg0EvMZFBUEZJWBS4AHgpCFz4CIsQQxaCpU37CmlSOClrM+iS6gSAMsEdmUOV8eTmlV/H/xJmQcMy4zjTBH1d1/cqst/HmO+f7uzi/Et4dYOrE3ik5TMRF/bEMzsSq8rZfWy7r5fIr8ShlXUXWrAUsUXgial0qh6nlV+U9lL+1f///////4YYeuiVMLguGZ9w2zuNC4YnYaljkyx9XdpJTQP9qGqeJQ9JYat///////////lDEspYzFJfWp6efqVpfP/P3OYSi9DOUzZlMO1IjOxKU1I1WjVuVS6hps5SqTEFNRTMuMTAwqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq//MUBI0AAAGkAOAAAAAAA0gBwAAAqqqq";
+        beep_instrument =
+            "data:audio/mp3;base64,/+NIxAAAAAAAAAAAAFhpbmcAAAAPAAAAAwAABDgAdHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR00dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR////////////////////////////////////////////AAAAUExBTUUzLjEwMAQoAAAAAAAAAAAVCCQCaiEAAeAAAAQ4wgQXdwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA/+NYxAAaIXKJX0MwAJUAbJwAE65xE/Quu/Xc9ETiJ7u+7vxETREKuBvCZNPYIABBwAACEPZO992TJk7YgAwtNjIj2QQGg+8Ez5R0Mcu//1h+J4IShwu8Th9TFBiJ3g+/KAhwf5QMcnyjuH/WfU6IIfic+UOehYUgyEGAgxGFOUf0QGKIUBY40ky4CqN2fuMDkTN1yJZABYgCnBPfVwpXMZ3QGFQXEmuYk2ss+Pc1yJt6xN2AoAGkIYAoAwNAEL7mAQAHKblNEs6i9k6FAy+JgEgBwUYGIFJMA8BACSEBAIAeMA8BgwKAnTEYMjMakSIhBNpbk2YFACRhfgymaMuSYUw0pi9AfgIBBIZbqYbSXWZZBUOuOEAoOKAQDC3cfLOodHiQeSVDgw6ty3+8Ofi3d2mWPpALrw3BUCQ5H5G3FMFMpuSuk9W4slVWdJ1lo1dU1NKucpctT1WH4hORSV35HKMaKV6o5Y6L/+NIxPJSu8K2OZjwUMrAn2hTKX1kzhRKfdmI0m+a13H96/vNY152X1J6WU8tn6SmnKelv0layYBoCQNAIL/mAMAOFAAUZAUAMj0gWjSsKgiWe7xe1OSlRW/9444497+WFruVSMvqAA/AA/rZZdYkh7EsTQnoK6PIT0LSJieMi86KX///////////////////////WjootSMi8wiDpUFf8RcFTolDRYGhgdpMQU1FMy4xMDCqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq/+MoxLoQ4648H8BoAKqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq"
+
+        var my_worker 
+        var my_audio_element
+        var my_play_button
+
+        var prev_milliseconds = 0 // for testing
+
+        function my_onload() {
+            my_audio_element = document.getElementById("my_audio")
+            my_play_button = document.getElementById("my_play_button")
+
+            // set which embedded sound file
+            my_audio_element.src = beep_instrument
+
+            set_volume()
+            
+            // create a worker (another thread) for the timer
+            // We want to imbed the javascript in this single file rather than a separate
+            // file so this code creates a url based on data. Kinda like the embedded
+            // sound files.
+            var javascript_code = document.getElementById('my_worker_script_block').textContent
+            var worker_blob = new Blob([javascript_code], {type: "text/javascript"});
+            window.URL = window.URL || (window.webkitURL); // simple polyfill
+            my_worker = new Worker(window.URL.createObjectURL(worker_blob));
+            
+            // handle the interval
+            my_worker.onmessage = play_one_click
+        }
+
+        function play_or_stop() {
+            if (my_play_button.innerText == "Play") {
+                play()
+                // toggle text
+                my_play_button.innerText = "Stop"
+                my_play_button.style.backgroundColor = "red"
+            } else {
+                // Tell worker to stop timer
+                my_worker.postMessage(["stop"])
+                // toggle text
+                my_play_button.innerText = "Play"
+                my_play_button.style.backgroundColor = "lightgreen"
+            }
+        }
+
+        function play() {
+            // calc milliseconds
+            var bpm = document.getElementById("my_bpm_input").value
+            var milliseconds = 60 * 1000 / bpm
+            // tell worker to start timer
+            my_worker.postMessage(["start", milliseconds])
+        }
+
+        function set_volume() {
+            // set volume
+            var volume = document.getElementById("my_volume_input").value
+            volume = volume / 10.0
+            my_audio_element.volume = volume
+        }
+
+        function play_one_click() {
+            //var now = new Date().getTime()
+            //console.log(prev_milliseconds - now)
+            //prev_milliseconds = now
+            my_audio_element.play()
+        }
+
+        function change_bpm() {
+            // are we currently playing?
+            if (my_play_button.innerText == "Stop") {
+                my_worker.postMessage(["stop"])
+                play()
+            }
+        }
+
+        function change_sound_file(el) {
+            if (el.value == "woodblock") {
+                my_audio_element.src = woodblock_instrument
+            } else if (el.value == "beep") {
+                my_audio_element.src = beep_instrument
+            }
+        }
+    </script>
+</head>
+
+<body onload="my_onload()">
+
+    <audio id="my_audio"></audio>
+
+    <div id="my_title">Corey's Javascript Metronome</div>
+
+    <div id="my_bpm_label">BPM</div>
+    <input id="my_bpm_input" onchange="change_bpm()" type="number" min="40" max="300" step="2" value="120" />
+
+    <br>
+    <button onclick="play_or_stop()" id="my_play_button">Play</button>
+
+    <br>
+    <input type="radio" name="instrument" value="beep" onclick="change_sound_file(this)" checked>Beep</input>
+    <input type="radio" name="instrument" value="woodblock" onclick="change_sound_file(this)">Woodblock</input>
+
+    <br>
+    <div id="my_volume_label">Volume (1 to 10)</div>
+
+    <input id="my_volume_input" onchange="set_volume()" type="number" value="5" min="1" max="10" step="1" />
+
+</body>
+
+</html>
