@@ -1,0 +1,82 @@
+<html>
+<head>
+<style>
+    td {
+        border: none;
+    }
+</style>
+<script>
+var AudioContext = window.AudioContext || window.webkitAudioContext; // cross browser    
+var audio_context = null
+var oscillator
+function on_load() {
+    
+    
+}
+function start(frequency) {
+    if (audio_context == null) {
+        audio_context = new AudioContext()
+    }
+    stop()
+    oscillator = audio_context.createOscillator();
+    oscillator.frequency.value = frequency
+    oscillator.connect(audio_context.destination)
+    oscillator.start()
+}
+
+function stop() {
+    try {
+        oscillator.stop()
+    }
+    catch(err) {
+        // swallow
+    }
+}
+ 
+</script>    
+</head>
+<body onload="on_load()">
+<table>
+ 
+    <tr>       
+        <td><button onclick="start(130.81)">C</button></td>
+        <td><button onclick="start(138.59)">C#</button></td>
+        <td><button onclick="start(146.83)">D</button></td>
+        <td><button onclick="start(155.56)">D#</button></td>
+
+        <td><button onclick="start(164.81)">E</button></td>
+        <td><button onclick="start(174.61)">F</button></td>
+        <td><button onclick="start(185.00)">F#</button></td>
+        <td><button onclick="start(196.00)">G</button></td>
+ 
+        <td><button onclick="start(207.65)">G#</button></td>
+        <td><button onclick="start(220.00)" style="background-color: red;"">A</button></td>
+        <td><button onclick="start(233.08)">A#</button></td>
+        <td><button onclick="start(246.94)">B</button></td>
+    </tr>
+    <tr>
+        <td><button onclick="start(261.63)">C</button></td>
+        <td><button onclick="start(277.18)">C#</button></td>
+        <td><button onclick="start(293.66)">D</button></td>
+        <td><button onclick="start(311.13)">D#</button></td>
+
+        <td><button onclick="start(329.63)">E</button></td>
+        <td><button onclick="start(349.23)">F</button></td>
+        <td><button onclick="start(369.99)">F#</button></td>
+        <td><button onclick="start(392.00)">G</button></td>
+
+        <td><button onclick="start(415.30)">G#</button></td>
+        <td><button onclick="start(440)" style="background-color: red;"">A</button></td>
+        <td><button onclick="start(466.16)">A#</button></td>
+        <td><button onclick="start(493.88)">B</button></td>
+
+        <td><button onclick="start(523.25)">C</button></td>
+    </tr>    
+ </table>
+
+<br>
+
+<button onclick="stop()">Stop</button>
+
+</body>
+</html>
