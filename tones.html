@@ -5,35 +5,89 @@
     
     <title>Corey's Tuner</title>
     <style>
-        button {
-            width: 40pt;
+        body, button {
+            font-family: verdana, arial;
+            font-size: 20px;
         }
+
+        button {
+            width: 60px;
+        }
+        #gain_input {
+            font-size: 20px;
+        }
+
+        .not_pressed {
+            color: black;
+            font-weight: normal;
+        }
+ 
+        .pressed {
+            color: red;
+            font-weight: bold
+        }
+
+
     </style>
     <script>
         var AudioContext = window.AudioContext || window.webkitAudioContext; // cross browser    
-        var audio_context = null
+        var audio_context
         var oscillator
-
+        var gain
+        var gain_factor = .5
+        var gain_input
+        var prev_frequency
+        var prev_button
+   
         function on_load() {
-
-
+            gain_input = document.getElementById("gain_input")
         }
 
-        function start(frequency) {
+        function change_gain() {
+            console.log(gain_input.value)
+            gain_factor = gain_input.value/10.0
+            gain.gain.value = gain_factor
+        }
+
+        function start(frequency, button) {
+
+            stop()
+            
+            // toggling any button is the same as stop
+            if (frequency == prev_frequency) {
+                prev_frequency = null
+                return
+            } 
+         
+            button.className = "pressed"
+            prev_button = button
+                        
+            prev_frequency = frequency
+
+            // can't do this in onload because browser wants an explicit user gesture
             if (audio_context == null) {
                 audio_context = new AudioContext()
             }
-            stop()
-            oscillator = audio_context.createOscillator();
+       
+            oscillator = audio_context.createOscillator()
             oscillator.frequency.value = frequency
-            oscillator.connect(audio_context.destination)
+
+            gain = audio_context.createGain()
+            gain.gain.value = gain_factor
+         
+            oscillator.connect(gain)
+            gain.connect(audio_context.destination)
+   
+            //oscillator.connect(audio_context.destination)
             oscillator.start()
         }
 
         function stop() {
             try {
                 oscillator.stop()
-            } catch (err) {
+                prev_button.className = "not_pressed"
+            } 
+            catch (err) {
                 // swallow
             }
         }
@@ -44,44 +98,50 @@
     <table>
 
         <tr>
-            <td><button onclick="start(130.81)">C</button></td>
-            <td><button onclick="start(138.59)">C#</button></td>
-            <td><button onclick="start(146.83)">D</button></td>
-            <td><button onclick="start(155.56)">D#</button></td>
+            <td><button onclick="start(130.81, this)">C</button></td>
+            <td><button onclick="start(138.59, this)">C#</button></td>
+            <td><button onclick="start(146.83, this)">D</button></td>
+            <td><button onclick="start(155.56, this)">D#</button></td>
 
-            <td><button onclick="start(164.81)">E</button></td>
-            <td><button onclick="start(174.61)">F</button></td>
-            <td><button onclick="start(185.00)">F#</button></td>
-            <td><button onclick="start(196.00)">G</button></td>
+            <td><button onclick="start(164.81, this)">E</button></td>
+            <td><button onclick="start(174.61, this)">F</button></td>
+            <td><button onclick="start(185.00, this)">F#</button></td>
+            <td><button onclick="start(196.00, this)">G</button></td>
 
-            <td><button onclick="start(207.65)">G#</button></td>
-            <td><button onclick="start(220.00)" style="background-color: red;">A</button></td>
-        <td><button onclick=" start(233.08)">A#</button></td>
-            <td><button onclick="start(246.94)">B</button></td>
+            <td><button onclick="start(207.65, this)">G#</button></td>
+            <td><button onclick="start(220.00, this)">A</button></td>
+        <td><button onclick=" start(233.08, this)">A#</button></td>
+            <td><button onclick="start(246.94, this)">B</button></td>
         </tr>
         <tr>
-            <td><button onclick="start(261.63)">C</button></td>
-            <td><button onclick="start(277.18)">C#</button></td>
-            <td><button onclick="start(293.66)">D</button></td>
-            <td><button onclick="start(311.13)">D#</button></td>
+            <td><button onclick="start(261.63, this)">C</button></td>
+            <td><button onclick="start(277.18, this)">C#</button></td>
+            <td><button onclick="start(293.66, this)">D</button></td>
+            <td><button onclick="start(311.13, this)">D#</button></td>
 
-            <td><button onclick="start(329.63)">E</button></td>
-            <td><button onclick="start(349.23)">F</button></td>
-            <td><button onclick="start(369.99)">F#</button></td>
-            <td><button onclick="start(392.00)">G</button></td>
+            <td><button onclick="start(329.63, this)">E</button></td>
+            <td><button onclick="start(349.23, this)">F</button></td>
+            <td><button onclick="start(369.99, this)">F#</button></td>
+            <td><button onclick="start(392.00, this)">G</button></td>
 
-            <td><button onclick="start(415.30)">G#</button></td>
-            <td><button onclick="start(440)" style="background-color: red;">A</button></td>
-        <td><button onclick=" start(466.16)">A#</button></td>
-            <td><button onclick="start(493.88)">B</button></td>
+            <td><button onclick="start(415.30, this)">G#</button></td>
+            <td><button onclick="start(440, this)" style="background-color: lightgreen;">A</button></td>
+            <td><button onclick=" start(466.16, this)">A#</button></td>
+            <td><button onclick="start(493.88, this)">B</button></td>
 
-            <td><button onclick="start(523.25)">C</button></td>
+            <td><button onclick="start(523.25, this)">C</button></td>
         </tr>
     </table>
 
     <br>
 
     <button onclick="stop()" style="background-color: red;">Stop</button>
+
+    <br>
+    <br>
+    Volume:
+    <br>
+    <input id="gain_input" type="number" onchange="change_gain()" min="1" max="10" value="5"></input>
 
 </body>
  
