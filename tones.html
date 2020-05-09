@@ -1,10 +1,10 @@
 <html>
-
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     
     <title>Corey's Tuner</title>
     <style>
+
         body, button {
             font-family: verdana, arial;
             font-size: 20px;
@@ -13,6 +13,7 @@
         button {
             width: 60px;
         }
+
         #gain_input {
             font-size: 20px;
         }
@@ -26,7 +27,6 @@
             color: red;
             font-weight: bold
         }
-
 
     </style>
     <script>
@@ -44,7 +44,7 @@
         }
 
         function change_gain() {
-            gain_factor = gain_input.value/10.0
+            gain_factor = gain_input.value/100.0
             gain.gain.value = gain_factor
         }
 
@@ -58,32 +58,33 @@
                 return
             } 
          
-            button.className = "pressed"
-            prev_button = button
-                        
             prev_frequency = frequency
 
             // can't do this in onload because browser wants an explicit user gesture
             if (audio_context == null) {
                 audio_context = new AudioContext()
+
+                // There's a "node graph"  oscillator->gain->destination
+                oscillator = audio_context.createOscillator()
+                gain = audio_context.createGain()
+                gain.gain.value = gain_factor
+                oscillator.connect(gain)
+                oscillator.start()
             }
-       
-            oscillator = audio_context.createOscillator()
+            
             oscillator.frequency.value = frequency
 
-            gain = audio_context.createGain()
-            gain.gain.value = gain_factor
-         
-            oscillator.connect(gain)
+            // connect and disconnect is on and off
             gain.connect(audio_context.destination)
-   
-            //oscillator.connect(audio_context.destination)
-            oscillator.start()
+
+            button.className = "pressed"
+            prev_button = button
+
         }
 
         function stop() {
             try {
-                oscillator.stop()
+                gain.disconnect()
                 prev_button.className = "not_pressed"
             } 
             catch (err) {
@@ -109,7 +110,7 @@
 
             <td><button onclick="start(207.65, this)">G#</button></td>
             <td><button onclick="start(220.00, this)">A</button></td>
-            <td><button onclick=" start(233.08, this)">A#</button></td>
+            <td><button onclick="start(233.08, this)">A#</button></td>
             <td><button onclick="start(246.94, this)">B</button></td>
         </tr>
         <tr>
@@ -125,7 +126,7 @@
 
             <td><button onclick="start(415.30, this)">G#</button></td>
             <td><button onclick="start(440, this)" style="background-color: lightgreen;">A</button></td>
-            <td><button onclick=" start(466.16, this)">A#</button></td>
+            <td><button onclick="start(466.16, this)">A#</button></td>
             <td><button onclick="start(493.88, this)">B</button></td>
 
             <td><button onclick="start(523.25, this)">C</button></td>
@@ -140,8 +141,7 @@
     <br>
     Volume:
     <br>
-    <input id="gain_input" type="number" onchange="change_gain()" min="1" max="10" value="5"></input>
+    <input id="gain_input" type="number" onchange="change_gain()" min="1" max="100" value="50"></input>
 
 </body>
- 
 </html>
