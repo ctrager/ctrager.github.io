@@ -6,17 +6,25 @@
     <title>Corey's Drone Tones</title>
     <style>
 
-        body, button {
+        body {
             font-family: verdana, arial;
             font-size: 20px;
+            margin: 20px;
         }
 
         button {
             width: 60px;
+            font-family: verdana, arial;
+            font-size: 20px;
         }
 
         #gain_input {
             font-size: 20px;
+        }
+
+        #my_title {
+            font-size: 18px;
+            letter-spacing: 3px;
         }
 
         .not_pressed {
@@ -27,6 +35,10 @@
         .pressed {
             color: red;
             font-weight: bold
+        }
+
+        #a440 {
+            background: lightgreen;
         }
 
     </style>
@@ -97,44 +109,47 @@
 
 <body onload="on_load()">
 
-    <div style="font-size:18px">Corey's Javascript Drone Tones</div>
+    <div id="my_title">Corey's Javascript Drone Tones</div>
     <br>
 
     <table>
 
         <tr>
+            <td><button onclick="start(110.00, this)">A</button></td>
+            <td><button onclick="start(116.54, this)">A#</button></td>
+            <td><button onclick="start(123.47, this)">B</button></td>
             <td><button onclick="start(130.81, this)">C</button></td>
             <td><button onclick="start(138.59, this)">C#</button></td>
             <td><button onclick="start(146.83, this)">D</button></td>
             <td><button onclick="start(155.56, this)">D#</button></td>
-
             <td><button onclick="start(164.81, this)">E</button></td>
             <td><button onclick="start(174.61, this)">F</button></td>
             <td><button onclick="start(185.00, this)">F#</button></td>
             <td><button onclick="start(196.00, this)">G</button></td>
-
             <td><button onclick="start(207.65, this)">G#</button></td>
+        </tr>
+        <tr>
             <td><button onclick="start(220.00, this)">A</button></td>
             <td><button onclick="start(233.08, this)">A#</button></td>
             <td><button onclick="start(246.94, this)">B</button></td>
-        </tr>
-        <tr>
             <td><button onclick="start(261.63, this)">C</button></td>
             <td><button onclick="start(277.18, this)">C#</button></td>
             <td><button onclick="start(293.66, this)">D</button></td>
             <td><button onclick="start(311.13, this)">D#</button></td>
-
             <td><button onclick="start(329.63, this)">E</button></td>
             <td><button onclick="start(349.23, this)">F</button></td>
             <td><button onclick="start(369.99, this)">F#</button></td>
             <td><button onclick="start(392.00, this)">G</button></td>
-
             <td><button onclick="start(415.30, this)">G#</button></td>
-            <td><button onclick="start(440, this)" style="background-color: lightgreen;">A</button></td>
+        </tr>
+            <td><button onclick="start(440, this)" id="a440">A440</button></td>
             <td><button onclick="start(466.16, this)">A#</button></td>
             <td><button onclick="start(493.88, this)">B</button></td>
-
             <td><button onclick="start(523.25, this)">C</button></td>
+            <td><button onclick="start(554.37, this)">C#</button></td>
+            <td><button onclick="start(587.33, this)">D</button></td>
+            <td><button onclick="start(622.25, this)">D#</button></td>
+            <td><button onclick="start(659.25, this)">E</button></td>
         </tr>
     </table>
 

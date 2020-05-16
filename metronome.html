@@ -8,11 +8,12 @@
         body {
             font-family: verdana, arial;
             font-size: 20px;
+            margin: 20px;
         }
 
         #my_title {
-            margin-top: 20px;
-            margin-bottom: 20px;
+            font-size: 18px;
+            letter-spacing: 3px;
         }
 
         #my_bpm_input {
@@ -36,6 +37,12 @@
             font-size: 20px;
             width: 40px;
         }
+
+        .increment {
+            font-size: 15px;
+            width: 60px;
+        }
+
     </style>
 
     <script id="my_worker_script_block">
@@ -66,12 +73,28 @@
         var my_worker 
         var my_audio_element
         var my_play_button
+        var my_bpm_input
+        var char_to_increment = {}
 
         var prev_milliseconds = 0 // for testing
 
         function my_onload() {
+
+            char_to_increment.Q = 2
+            char_to_increment.W = 4
+            char_to_increment.E = 6
+            char_to_increment.R = 8
+            char_to_increment.T = 10
+
+            char_to_increment.A = -2
+            char_to_increment.S = -4
+            char_to_increment.D = -6
+            char_to_increment.F = -8
+            char_to_increment.G = -10
+                      
             my_audio_element = document.getElementById("my_audio")
             my_play_button = document.getElementById("my_play_button")
+            my_bpm_input = document.getElementById("my_bpm_input")
 
             // set which embedded sound file
             my_audio_element.src = beep_instrument
@@ -107,9 +130,7 @@
         }
 
         function play() {
-            // calc milliseconds
-            var bpm = document.getElementById("my_bpm_input").value
-            var milliseconds = 60 * 1000 / bpm
+            var milliseconds = 60 * 1000 / my_bpm_input.value
             // tell worker to start timer
             my_worker.postMessage(["start", milliseconds])
         }
@@ -136,6 +157,15 @@
             }
         }
 
+        function increment_bpm(increment)  {
+            // put focus back to play/stop otherwise spacebar affects last pressed button
+            //my_play_button.focus()
+            my_bpm_input.value = parseInt(my_bpm_input.value) + increment
+            change_bpm()
+            // so that the spacebar keeps working
+            my_play_button.focus()
+        }
+
         function change_sound_file(el) {
             if (el.value == "woodblock") {
                 my_audio_element.src = woodblock_instrument
@@ -143,18 +173,45 @@
                 my_audio_element.src = beep_instrument
             }
         }
+
+        function handle_key(event) {
+            // +2, 4, -2, -4, etc
+            var char = String.fromCharCode(event.keyCode);
+            var increment = char_to_increment[char]
+            if (increment) {
+                increment_bpm(increment)
+                return
+            }
+        }
     </script>
 </head>
 
-<body onload="my_onload()">
+<body onload="my_onload()" onkeydown="handle_key(event)">
 
     <audio id="my_audio"></audio>
 
     <div id="my_title">Corey's Javascript Metronome</div>
+    <br>
 
     <div id="my_bpm_label">BPM</div>
-    <input id="my_bpm_input" onchange="change_bpm()" type="number" min="40" max="300" step="2" value="120" />
+    <input id="my_bpm_input" onchange="change_bpm()" type="number" min="40" max="300" step="1" value="120" />
 
+    <table>
+        <tr>
+            <td><button class="increment" onclick="increment_bpm(2)">+2/Q</button></td>
+            <td><button class="increment" onclick="increment_bpm(4)">+4/W</button></td>
+            <td><button class="increment" onclick="increment_bpm(6)">+6/E</button></td>
+            <td><button class="increment" onclick="increment_bpm(8)">+8/R</button></td>
+            <td><button class="increment" onclick="increment_bpm(10)">+10/T</button></td>
+        </tr>
+        <tr>
+            <td><button class="increment" onclick="increment_bpm(-2)">-2/A</button></td>
+            <td><button class="increment" onclick="increment_bpm(-4)">-4/S</button></td>
+            <td><button class="increment" onclick="increment_bpm(-6)">-6/D</button></td>
+            <td><button class="increment" onclick="increment_bpm(-8)">-8/F</button></td>
+            <td><button class="increment" onclick="increment_bpm(-10)">-10/G</button></td>
+        </tr>
+    </table>
     <br>
     <button onclick="play_or_stop()" id="my_play_button">Play</button>
 
