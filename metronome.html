@@ -39,8 +39,9 @@
         }
 
         .increment {
-            font-size: 15px;
-            width: 60px;
+            font-size: 16px;
+            width: 70px;
+            padding: 0;
         }
 
     </style>
@@ -63,12 +64,18 @@
     </script>
 
     <script>
-    
-        // We are embedding the base64 encoded sound files into the app
+
+        // We are embedding the base64 encoded sound files into the app. Firefox likes mp3, not wav, somehow.
+        // Run:
+        // base64 -w0 some_sound_file.mp3 > some_text_file
+        // Then copy paste the text here
+       
+        beep_instrument =
+            "data:audio/mp3;base64,/+NIxAAAAAAAAAAAAFhpbmcAAAAPAAAAAwAABDgAdHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR00dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR////////////////////////////////////////////AAAAUExBTUUzLjEwMAQoAAAAAAAAAAAVCCQCaiEAAeAAAAQ4wgQXdwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA/+NYxAAaIXKJX0MwAJUAbJwAE65xE/Quu/Xc9ETiJ7u+7vxETREKuBvCZNPYIABBwAACEPZO992TJk7YgAwtNjIj2QQGg+8Ez5R0Mcu//1h+J4IShwu8Th9TFBiJ3g+/KAhwf5QMcnyjuH/WfU6IIfic+UOehYUgyEGAgxGFOUf0QGKIUBY40ky4CqN2fuMDkTN1yJZABYgCnBPfVwpXMZ3QGFQXEmuYk2ss+Pc1yJt6xN2AoAGkIYAoAwNAEL7mAQAHKblNEs6i9k6FAy+JgEgBwUYGIFJMA8BACSEBAIAeMA8BgwKAnTEYMjMakSIhBNpbk2YFACRhfgymaMuSYUw0pi9AfgIBBIZbqYbSXWZZBUOuOEAoOKAQDC3cfLOodHiQeSVDgw6ty3+8Ofi3d2mWPpALrw3BUCQ5H5G3FMFMpuSuk9W4slVWdJ1lo1dU1NKucpctT1WH4hORSV35HKMaKV6o5Y6L/+NIxPJSu8K2OZjwUMrAn2hTKX1kzhRKfdmI0m+a13H96/vNY152X1J6WU8tn6SmnKelv0layYBoCQNAIL/mAMAOFAAUZAUAMj0gWjSsKgiWe7xe1OSlRW/9444497+WFruVSMvqAA/AA/rZZdYkh7EsTQnoK6PIT0LSJieMi86KX///////////////////////WjootSMi8wiDpUFf8RcFTolDRYGhgdpMQU1FMy4xMDCqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq/+MoxLoQ4648H8BoAKqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq"
+
         woodblock_instrument =
             "data:audio/mp3;base64,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";
-        beep_instrument =
-            "data:audio/wav;base64,UklGRuYCAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YcICAADAAXQCEQPjACL+Pf7//ZcCQP7GDHhR/nnqUSMACasFiXOv4AApUURwrk84Ad6xIZM4ssf88EcjZ71KPQGTtVWZV7mW/4hHZGTzRSsArbqroL68Uf7GQZJcGkF2/5O/R6ZcwM0AMD/TV6Q9Tf+Vw76ruMWlAZE6MlEsODv+vMaYsgjLfgD0NTFL7jIt/VrKzbbqzLQACzPXRosxv/9Gz4q7N9B7AIUvkEKwLqMAtdItv8XREv9rLFo+5it1AG7VUMXB1gj/Gih3OfMoHgBI2MzIndlNAL8lhjQGJM7+gdtrzQ/dugACI64wziF1//TdOdEV4GgAkR/sK5oeDgBo4k/Wa+K4/8wcJyj7G+n/COQg2fnk5f+tGp4lAxpr/8Lly9vc5oQAlxnCItsX4v+G6JHftOlHAGsWAx/iFPn+Q+pA4lnrhQAMFYYc2RPq/zPsAOWh7dQACxOdGaERk/9T7s/nKu8xAJYQFxcTEMz/UvBY6vzwFQA/D3IV3g5EAOrxQ+x08hsArQ27EuoMNgBj8//tKfO5//MLwRC7CwUA3vQx8Kj02f/GCjsPwQoTAK71k/EY9t3/OwkjDRYJtP/u9n3zLvf7/3UIzgtSCFcAbvgP9UD4v/8tByQK3Qbg/yH5WPY8+fj/bQbWCCUGQABh+u73MPq//0YFiAdNBSEAGvvg+Nn60v+fBJoGwwRHAKv71PnA+/7/IwSvBfADDwBF/NL6VPz6/30DwARdAwIA3vyr+/38/f/PAt8DrQITAJj9f/yG/QYAYwJHAzIC6v/V/Rz9A/75/+kBlgLJAfz/Vv6x/WT+AgB9ARECcAH5/6r+Jf67/vD/KAGcARwBDwDz/pL+DP8QAPQANwHYAPb/Lv/3/j7/CQCyAPkArAD3/2T/LP98/wkABwD9//j/+//3/wgACAAZAAkAAgDw/+v/9/8BAAoA"
+        
         var my_worker
         var my_audio_element
         var my_play_button
