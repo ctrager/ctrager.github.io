@@ -74,9 +74,19 @@
         var my_audio_element
         var my_play_button
         var my_bpm_input
+        var my_tap_results
+        var my_volume_input
+
         var char_to_increment = {}
 
         var prev_milliseconds = 0 // for testing
+
+        var prev_tap_time = 0
+        var number_of_taps = 0
+        var accumulated_tap_time = 0
+
+        var beats = "1"
+        var current_beat = 1
 
         function my_onload() {
 
@@ -95,11 +105,11 @@
             my_audio_element = document.getElementById("my_audio")
             my_play_button = document.getElementById("my_play_button")
             my_bpm_input = document.getElementById("my_bpm_input")
+            my_tap_results = document.getElementById("my_tap_results")
+            my_volume_input = document.getElementById("my_volume_input")
 
             // set which embedded sound file
             my_audio_element.src = beep_instrument
-
-            set_volume()
             
             // create a worker (another thread) for the timer
             // We want to imbed the javascript in this single file rather than a separate
@@ -135,18 +145,49 @@
             my_worker.postMessage(["start", milliseconds])
         }
 
-        function set_volume() {
-            // set volume
-            var volume = document.getElementById("my_volume_input").value
-            volume = volume / 10.0
-            my_audio_element.volume = volume
-        }
-
         function play_one_click() {
+            //to view accuracy
             //var now = new Date().getTime()
             //console.log(prev_milliseconds - now)
             //prev_milliseconds = now
+            
+            var volume
+
+            if (beats == "1") {
+                volume = my_volume_input.value
+                volume = volume / 10.0 // normal loudness
+            }
+            else {
+                volume = calc_accented_volume(beats)
+            }
+            console.log(volume)
+            my_audio_element.volume = volume
             my_audio_element.play()
+        }
+
+        function calc_accented_volume(beats) {
+            
+            var volume = my_volume_input.value
+            
+            if (current_beat == 1) {
+                volume = volume / 6.0 // louder
+            }
+            else {
+                volume = volume / 15.0 // softer
+            }
+
+            // api doesn't like numbers > 1.0  
+            if (volume > 1.0) {
+                volume = 1.0
+            }
+
+            // 1,2,3   1,2,3  etc
+            current_beat++
+            if (current_beat > beats) {
+                current_beat = 1
+            }
+
+            return volume            
         }
 
         function change_bpm() {
@@ -174,6 +215,10 @@
             }
         }
 
+        function change_beats(el) {
+            beats = el.value
+        }
+
         function handle_key(event) {
             // +2, 4, -2, -4, etc
             var char = String.fromCharCode(event.keyCode);
@@ -181,6 +226,31 @@
             if (increment) {
                 increment_bpm(increment)
                 return
+            }
+
+            if (char == 'J') {
+                // calc bpm from taps
+                var now = new Date().getTime()
+                if (prev_tap_time != 0) {
+                    var delta_milliseconds = now - prev_tap_time
+                    accumulated_tap_time += delta_milliseconds
+                    number_of_taps++
+                    var avg_milliseconds = accumulated_tap_time / number_of_taps
+                    var last = Math.round(60 * 1000 / delta_milliseconds)
+                    var bpm = Math.round(60 * 1000 / avg_milliseconds)
+                    my_tap_results.innerText = "last tap=" + last + ", avg bpm=" + bpm 
+                }
+                else {
+                    my_tap_results.innerText = "tapping started..."
+                }
+                prev_tap_time = now     
+            }
+            else if (char == 'L') {
+                // clear tapping info
+                prev_tap_time = 0
+                number_of_taps = 0
+                accumulated_tap_time = 0
+                my_tap_results.innerText = ""
             }
         }
     </script>
@@ -218,13 +288,25 @@
 
     <br>
     <div id="my_volume_label">Volume (1 to 10)</div>
-    <input id="my_volume_input" onchange="set_volume()" type="number" value="5" min="1" max="10" step="1" />
+    <input id="my_volume_input" type="number" value="5" min="1" max="10" step="1" />
+
+    <br>
+    <br>
+    <input type="radio" name="beats" value="1" onclick="change_beats(this)" checked>no accent</input>
+    <input type="radio" name="beats" value="4" onclick="change_beats(this)">4/4</input>
+    <input type="radio" name="beats" value="3" onclick="change_beats(this)">3/4</input>
+    <input type="radio" name="beats" value="5" onclick="change_beats(this)">5/4</input>
 
     <br>
     <br>
     <input type="radio" name="instrument" value="beep" onclick="change_sound_file(this)" checked>Beep</input>
     <input type="radio" name="instrument" value="woodblock" onclick="change_sound_file(this)">Woodblock</input>
 
+    <br>
+    <br>
+    <div id="my_tap_area_label">Tap J key to calc BPM, L key to reset</div>
+    <div id="my_tap_results"></div>
+    
 </body>
 
 </html>
