@@ -24,13 +24,7 @@
 
         #my_play_button {
             background-color: lightgreen;
-            margin-top: 20px;
-            margin-bottom: 20px;
             font-size: 40px;
-        }
-
-        #my_volume_label {
-            margin-top: 20px;
         }
 
         #my_volume_input {
@@ -201,34 +195,35 @@
 
     <div id="my_bpm_label">BPM</div>
     <input id="my_bpm_input" onchange="change_bpm()" type="number" min="40" max="300" step="1" value="120" />
-
-    <table>
-        <tr>
-            <td><button class="increment" onclick="increment_bpm(2)">+2/Q</button></td>
-            <td><button class="increment" onclick="increment_bpm(4)">+4/W</button></td>
-            <td><button class="increment" onclick="increment_bpm(6)">+6/E</button></td>
-            <td><button class="increment" onclick="increment_bpm(8)">+8/R</button></td>
-            <td><button class="increment" onclick="increment_bpm(10)">+10/T</button></td>
-        </tr>
-        <tr>
-            <td><button class="increment" onclick="increment_bpm(-2)">-2/A</button></td>
-            <td><button class="increment" onclick="increment_bpm(-4)">-4/S</button></td>
-            <td><button class="increment" onclick="increment_bpm(-6)">-6/D</button></td>
-            <td><button class="increment" onclick="increment_bpm(-8)">-8/F</button></td>
-            <td><button class="increment" onclick="increment_bpm(-10)">-10/G</button></td>
-        </tr>
-    </table>
-    <br>
     <button onclick="play_or_stop()" id="my_play_button">Play</button>
 
     <br>
-    <input type="radio" name="instrument" value="beep" onclick="change_sound_file(this)" checked>Beep</input>
-    <input type="radio" name="instrument" value="woodblock" onclick="change_sound_file(this)">Woodblock</input>
+   
+    <table>
+        <tr>
+            <td><button class="increment" onclick="increment_bpm(2)">+2 Q</button></td>
+            <td><button class="increment" onclick="increment_bpm(4)">+4 W</button></td>
+            <td><button class="increment" onclick="increment_bpm(6)">+6 E</button></td>
+            <td><button class="increment" onclick="increment_bpm(8)">+8 R</button></td>
+            <td><button class="increment" onclick="increment_bpm(10)">+10 T</button></td>
+        </tr>
+        <tr>
+            <td><button class="increment" onclick="increment_bpm(-2)">-2 A</button></td>
+            <td><button class="increment" onclick="increment_bpm(-4)">-4 S</button></td>
+            <td><button class="increment" onclick="increment_bpm(-6)">-6 D</button></td>
+            <td><button class="increment" onclick="increment_bpm(-8)">-8 F</button></td>
+            <td><button class="increment" onclick="increment_bpm(-10)">-10 G</button></td>
+        </tr>
+    </table>
 
     <br>
     <div id="my_volume_label">Volume (1 to 10)</div>
-
     <input id="my_volume_input" onchange="set_volume()" type="number" value="5" min="1" max="10" step="1" />
+
+    <br>
+    <br>
+    <input type="radio" name="instrument" value="beep" onclick="change_sound_file(this)" checked>Beep</input>
+    <input type="radio" name="instrument" value="woodblock" onclick="change_sound_file(this)">Woodblock</input>
 
 </body>
 
