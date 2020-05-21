@@ -35,51 +35,34 @@
         .increment {
             font-size: 16px;
             width: 70px;
+            height: 40px;
             padding: 0;
+            white-space: nowrap;
+        }
+
+        #my_tap_pad {
+            width: 200px;
+            height: 200px;
+            background-color: lightgray;
+            border: 1px solid gray;
         }
 
     </style>
 
-    <script id="my_worker_script_block">
- 
-        var my_worker_interval
-        
-        self.onmessage = function(event) {
-            if (event.data[0] == "start") {
-                var milliseconds = event.data[1]
-                my_worker_interval = setInterval(function() {postMessage(null)}, milliseconds)
-            }
-            else {
-                // stop
-                clearInterval(my_worker_interval)
-            }
-        };
-
-    </script>
-
     <script>
 
-        // We are embedding the base64 encoded sound files into the app. Firefox likes mp3, not wav, somehow.
-        // Run:
-        // base64 -w0 some_sound_file.mp3 > some_text_file
-        // Then copy paste the text here
-       
-        beep_instrument =
-            "data:audio/mp3;base64,/+NIxAAAAAAAAAAAAFhpbmcAAAAPAAAAAwAABDgAdHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR00dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR////////////////////////////////////////////AAAAUExBTUUzLjEwMAQoAAAAAAAAAAAVCCQCaiEAAeAAAAQ4wgQXdwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA/+NYxAAaIXKJX0MwAJUAbJwAE65xE/Quu/Xc9ETiJ7u+7vxETREKuBvCZNPYIABBwAACEPZO992TJk7YgAwtNjIj2QQGg+8Ez5R0Mcu//1h+J4IShwu8Th9TFBiJ3g+/KAhwf5QMcnyjuH/WfU6IIfic+UOehYUgyEGAgxGFOUf0QGKIUBY40ky4CqN2fuMDkTN1yJZABYgCnBPfVwpXMZ3QGFQXEmuYk2ss+Pc1yJt6xN2AoAGkIYAoAwNAEL7mAQAHKblNEs6i9k6FAy+JgEgBwUYGIFJMA8BACSEBAIAeMA8BgwKAnTEYMjMakSIhBNpbk2YFACRhfgymaMuSYUw0pi9AfgIBBIZbqYbSXWZZBUOuOEAoOKAQDC3cfLOodHiQeSVDgw6ty3+8Ofi3d2mWPpALrw3BUCQ5H5G3FMFMpuSuk9W4slVWdJ1lo1dU1NKucpctT1WH4hORSV35HKMaKV6o5Y6L/+NIxPJSu8K2OZjwUMrAn2hTKX1kzhRKfdmI0m+a13H96/vNY152X1J6WU8tn6SmnKelv0layYBoCQNAIL/mAMAOFAAUZAUAMj0gWjSsKgiWe7xe1OSlRW/9444497+WFruVSMvqAA/AA/rZZdYkh7EsTQnoK6PIT0LSJieMi86KX///////////////////////WjootSMi8wiDpUFf8RcFTolDRYGhgdpMQU1FMy4xMDCqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq/+MoxLoQ4648H8BoAKqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq"
-
-        woodblock_instrument =
-            "data:audio/mp3;base64,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";
-        
-        var my_worker
-        var my_audio_element
+        var AudioContext = window.AudioContext || window.webkitAudioContext; // cross browser    
+        var audio_context
+        var oscillator
+        var gain
+      
         var my_play_button
         var my_bpm_input
-        var my_tap_results
         var my_volume_input
 
+        var my_tap_results
+     
         var char_to_increment = {}
-
-        var prev_milliseconds = 0 // for testing
 
         var prev_tap_time = 0
         var number_of_taps = 0
@@ -87,6 +70,7 @@
 
         var beats = "1"
         var current_beat = 1
+        var seconds
 
         function my_onload() {
 
@@ -107,62 +91,82 @@
             my_bpm_input = document.getElementById("my_bpm_input")
             my_tap_results = document.getElementById("my_tap_results")
             my_volume_input = document.getElementById("my_volume_input")
-
-            // set which embedded sound file
-            my_audio_element.src = beep_instrument
-            
-            // create a worker (another thread) for the timer
-            // We want to imbed the javascript in this single file rather than a separate
-            // file so this code creates a url based on data. Kinda like the embedded
-            // sound files.
-            var javascript_code = document.getElementById('my_worker_script_block').textContent
-            var worker_blob = new Blob([javascript_code], {type: "text/javascript"});
-            window.URL = window.URL || (window.webkitURL); // simple polyfill
-            my_worker = new Worker(window.URL.createObjectURL(worker_blob));
-            
-            // handle the interval
-            my_worker.onmessage = play_one_click
+          
         }
 
         function play_or_stop() {
+
+            // can't do this in onload because browser wants an explicit user gesture
+            if (audio_context == null) {
+                audio_context = new AudioContext()
+
+                // There's a "node graph"  oscillator->gain->destination
+                oscillator = audio_context.createOscillator()
+                oscillator.type = "sine"
+                oscillator.frequency.value = 1000
+                gain = audio_context.createGain()
+                gain.gain.value = 0
+                oscillator.connect(gain)
+                gain.connect(audio_context.destination)
+                oscillator.start()
+            }
+
             if (my_play_button.innerText == "Play") {
-                play()
+                change_bpm()
                 // toggle text
                 my_play_button.innerText = "Stop"
                 my_play_button.style.backgroundColor = "red"
             } else {
-                // Tell worker to stop timer
-                my_worker.postMessage(["stop"])
+                stop_playing()
                 // toggle text
                 my_play_button.innerText = "Play"
                 my_play_button.style.backgroundColor = "lightgreen"
             }
         }
 
-        function play() {
-            var milliseconds = 60 * 1000 / my_bpm_input.value
-            // tell worker to start timer
-            my_worker.postMessage(["start", milliseconds])
+        function stop_start() {
+            current_beat = 1
+            stop_playing()
+            play()
         }
 
-        function play_one_click() {
-            //to view accuracy
-            //var now = new Date().getTime()
-            //console.log(prev_milliseconds - now)
-            //prev_milliseconds = now
-            
-            var volume
+        function play() {
 
-            if (beats == "1") {
-                volume = my_volume_input.value
-                volume = volume / 10.0 // normal loudness
+            var volume 
+
+            var now = audio_context.currentTime
+
+            // schedule click 1 a little in the future so that click 2 doesn't come right after the late click 1
+            now += .5
+ 
+            // schedule 15 minutes of iterations
+            var iterations = Math.round (15 * 60 / seconds)
+  
+            for (var i = 0; i < iterations; i++) {
+                // calc how loud, calc if this beat should be the louder "accented" beat
+                if (beats == "1") {
+                    volume = my_volume_input.value
+                    volume = volume / 10.0 // normal loudness
+                }
+                else {
+                    volume = calc_accented_volume(beats)
+                } 
+
+                schedule_one_click(now + (i * seconds), volume)
             }
-            else {
-                volume = calc_accented_volume(beats)
-            }
-            console.log(volume)
-            my_audio_element.volume = volume
-            my_audio_element.play()
+        }
+
+        function stop_playing() {
+            var time = audio_context.currentTime
+            gain.gain.setValueAtTime(0, time)
+            gain.gain.cancelScheduledValues(time)
+        }
+
+        function schedule_one_click(time, volume) {
+            gain.gain.cancelScheduledValues(time)
+            gain.gain.setValueAtTime(0, time)
+            gain.gain.linearRampToValueAtTime(volume, time + .001);
+            gain.gain.linearRampToValueAtTime(0, time + .001 + .01);  
         }
 
         function calc_accented_volume(beats) {
@@ -170,10 +174,10 @@
             var volume = my_volume_input.value
             
             if (current_beat == 1) {
-                volume = volume / 6.0 // louder
+                volume = (volume / 10.0) * 2.0 // louder
             }
             else {
-                volume = volume / 15.0 // softer
+                volume = (volume / 10.0) / 2 // softer
             }
 
             // api doesn't like numbers > 1.0  
@@ -190,12 +194,19 @@
             return volume            
         }
 
+        function change_frequency(el) {
+            oscillator.frequency.value = el.value
+            stop_start()
+        }
+
         function change_bpm() {
-            // are we currently playing?
-            if (my_play_button.innerText == "Stop") {
-                my_worker.postMessage(["stop"])
-                play()
-            }
+            seconds = 60.0 / my_bpm_input.value
+            stop_start()
+        }
+
+        function change_beats(el) {
+            beats = el.value
+            stop_start()
         }
 
         function increment_bpm(increment)  {
@@ -207,17 +218,35 @@
             my_play_button.focus()
         }
 
-        function change_sound_file(el) {
-            if (el.value == "woodblock") {
-                my_audio_element.src = woodblock_instrument
-            } else if (el.value == "beep") {
-                my_audio_element.src = beep_instrument
+        function handle_tap() {
+            
+            // calc bpm from taps
+            var now = new Date().getTime()
+            
+            if (prev_tap_time != 0) {
+                var delta_milliseconds = now - prev_tap_time
+                accumulated_tap_time += delta_milliseconds
+                number_of_taps++
+                var avg_milliseconds = accumulated_tap_time / number_of_taps
+                var last = Math.round(60 * 1000 / delta_milliseconds)
+                var bpm = Math.round(60 * 1000 / avg_milliseconds)
+                my_tap_results.innerText = "last tap=" + last + ", avg bpm=" + bpm 
             }
+            else {
+                my_tap_results.innerText = "tapping started..."
+            }
+            prev_tap_time = now     
+    
         }
 
-        function change_beats(el) {
-            beats = el.value
+        function reset_tap() {
+            // clear tapping info
+            prev_tap_time = 0
+            number_of_taps = 0
+            accumulated_tap_time = 0
+            my_tap_results.innerText = ""
         }
+
 
         function handle_key(event) {
             // +2, 4, -2, -4, etc
@@ -229,36 +258,16 @@
             }
 
             if (char == 'J') {
-                // calc bpm from taps
-                var now = new Date().getTime()
-                if (prev_tap_time != 0) {
-                    var delta_milliseconds = now - prev_tap_time
-                    accumulated_tap_time += delta_milliseconds
-                    number_of_taps++
-                    var avg_milliseconds = accumulated_tap_time / number_of_taps
-                    var last = Math.round(60 * 1000 / delta_milliseconds)
-                    var bpm = Math.round(60 * 1000 / avg_milliseconds)
-                    my_tap_results.innerText = "last tap=" + last + ", avg bpm=" + bpm 
-                }
-                else {
-                    my_tap_results.innerText = "tapping started..."
-                }
-                prev_tap_time = now     
+                handle_tap()
             }
             else if (char == 'L') {
-                // clear tapping info
-                prev_tap_time = 0
-                number_of_taps = 0
-                accumulated_tap_time = 0
-                my_tap_results.innerText = ""
+                reset_tap()
             }
         }
     </script>
 </head>
 
 <body onload="my_onload()" onkeydown="handle_key(event)">
-
-    <audio id="my_audio"></audio>
 
     <div id="my_title">Corey's Javascript Metronome</div>
     <br>
@@ -287,6 +296,7 @@
     </table>
 
     <br>
+    <br>
     <div id="my_volume_label">Volume (1 to 10)</div>
     <input id="my_volume_input" type="number" value="5" min="1" max="10" step="1" />
 
@@ -299,14 +309,24 @@
 
     <br>
     <br>
-    <input type="radio" name="instrument" value="beep" onclick="change_sound_file(this)" checked>Beep</input>
-    <input type="radio" name="instrument" value="woodblock" onclick="change_sound_file(this)">Woodblock</input>
+    <div>pitch</div>
+    <input type="radio" name="frequency" value="600" onclick="change_frequency(this)">600</input>
+    <input type="radio" name="frequency" value="800" onclick="change_frequency(this)">800</input>
+    <input type="radio" name="frequency" value="1000" onclick="change_frequency(this)" checked>1000</input>
+    <input type="radio" name="frequency" value="1200" onclick="change_frequency(this)">1200</input>
+    <input type="radio" name="frequency" value="1600" onclick="change_frequency(this)">1600</input>
 
     <br>
     <br>
-    <div id="my_tap_area_label">Tap J key to calc BPM, L key to reset</div>
+    <div>
+        Tap J key to calc BPM, click pad below
+        &nbsp;
+        <button onclick="reset_tap()">Reset tap</button>
+    </div>
     <div id="my_tap_results"></div>
+    <div id="my_tap_pad" onclick="handle_tap()"></div>
     
+
 </body>
 
 </html>
