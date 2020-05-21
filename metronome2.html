@@ -37,26 +37,10 @@
             width: 70px;
             height: 40px;
             padding: 0;
+            white-space: nowrap;
         }
 
     </style>
-
-    <script id="my_worker_script_block">
- 
-        var my_worker_interval
-        
-        self.onmessage = function(event) {
-            if (event.data[0] == "start") {
-                var milliseconds = event.data[1]
-                my_worker_interval = setInterval(function() {postMessage(null)}, milliseconds)
-            }
-            else {
-                // stop
-                clearInterval(my_worker_interval)
-            }
-        };
-
-    </script>
 
     <script>
 
@@ -65,16 +49,13 @@
         var oscillator
         var gain
       
-        var my_worker
-        var my_audio_element
         var my_play_button
         var my_bpm_input
-        var my_tap_results
         var my_volume_input
 
+        var my_tap_results
+     
         var char_to_increment = {}
-
-        var prev_milliseconds = 0 // for testing
 
         var prev_tap_time = 0
         var number_of_taps = 0
@@ -82,7 +63,8 @@
 
         var beats = "1"
         var current_beat = 1
-  
+        var seconds
+
         function my_onload() {
 
             char_to_increment.Q = 2
@@ -103,17 +85,6 @@
             my_tap_results = document.getElementById("my_tap_results")
             my_volume_input = document.getElementById("my_volume_input")
           
-            // create a worker (another thread) for the timer
-            // We want to imbed the javascript in this single file rather than a separate
-            // file so this code creates a url based on data. Kinda like the embedded
-            // sound files.
-            var javascript_code = document.getElementById('my_worker_script_block').textContent
-            var worker_blob = new Blob([javascript_code], {type: "text/javascript"});
-            window.URL = window.URL || (window.webkitURL); // simple polyfill
-            my_worker = new Worker(window.URL.createObjectURL(worker_blob));
-            
-            // handle the interval
-            my_worker.onmessage = play_one_click
         }
 
         function play_or_stop() {
@@ -134,50 +105,61 @@
             }
 
             if (my_play_button.innerText == "Play") {
-                play()
+                change_bpm()
                 // toggle text
                 my_play_button.innerText = "Stop"
                 my_play_button.style.backgroundColor = "red"
             } else {
-                // Tell worker to stop timer
-                my_worker.postMessage(["stop"])
+                stop_playing()
                 // toggle text
                 my_play_button.innerText = "Play"
                 my_play_button.style.backgroundColor = "lightgreen"
             }
         }
 
-        function play() {
-            var milliseconds = 60 * 1000 / my_bpm_input.value
-            // tell worker to start timer
-            my_worker.postMessage(["start", milliseconds])
+        function stop_start() {
+            current_beat = 1
+            stop_playing()
+            play()
         }
 
-        function play_one_click() {
-            //to view accuracy
-            //var now = new Date().getTime()
-            //console.log(prev_milliseconds - now)
-            //prev_milliseconds = now
-            
-            var volume
+        function play() {
 
-            if (beats == "1") {
-                volume = my_volume_input.value
-                volume = volume / 10.0 // normal loudness
-            }
-            else {
-                volume = calc_accented_volume(beats)
-            }
-            
-            //my_audio_element.volume = volume
-            var time = audio_context.currentTime;
-            // Silence the click.
-            gain.gain.cancelScheduledValues(time);
-            gain.gain.setValueAtTime(0, time);
+            var volume 
 
-            // Audible click sound.
+            var now = audio_context.currentTime
+
+            // schedule click 1 a little in the future so that click 2 doesn't come right after the late click 1
+            now += .5
+ 
+            // schedule 15 minutes of iterations
+            var iterations = Math.round (15 * 60 / seconds)
+  
+            for (var i = 0; i < iterations; i++) {
+                // calc how loud, calc if this beat should be the louder "accented" beat
+                if (beats == "1") {
+                    volume = my_volume_input.value
+                    volume = volume / 10.0 // normal loudness
+                }
+                else {
+                    volume = calc_accented_volume(beats)
+                } 
+
+                schedule_one_click(now + (i * seconds), volume)
+            }
+        }
+
+        function stop_playing() {
+            var time = audio_context.currentTime
+            gain.gain.setValueAtTime(0, time)
+            gain.gain.cancelScheduledValues(time)
+        }
+
+        function schedule_one_click(time, volume) {
+            gain.gain.cancelScheduledValues(time)
+            gain.gain.setValueAtTime(0, time)
             gain.gain.linearRampToValueAtTime(volume, time + .001);
-            gain.gain.linearRampToValueAtTime(0, time + .001 + .01);
+            gain.gain.linearRampToValueAtTime(0, time + .001 + .01);  
         }
 
         function calc_accented_volume(beats) {
@@ -205,16 +187,19 @@
             return volume            
         }
 
-        function change_bpm() {
-            // are we currently playing?
-            if (my_play_button.innerText == "Stop") {
-                my_worker.postMessage(["stop"])
-                play()
-            }
-        }
-
         function change_frequency(el) {
             oscillator.frequency.value = el.value
+            stop_start()
+        }
+
+        function change_bpm() {
+            seconds = 60.0 / my_bpm_input.value
+            stop_start()
+        }
+
+        function change_beats(el) {
+            beats = el.value
+            stop_start()
         }
 
         function increment_bpm(increment)  {
@@ -224,10 +209,6 @@
             change_bpm()
             // so that the spacebar keeps working
             my_play_button.focus()
-        }
-
-        function change_beats(el) {
-            beats = el.value
         }
 
         function handle_key(event) {

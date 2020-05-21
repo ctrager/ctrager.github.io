@@ -21,34 +21,44 @@
                 
                 tick.connect(this.tickVolume);
                 tickVolume.connect(this.audioCtx.destination);
-                tick.start(0);  // No offset, start immediately.
+                tick.start(0);  
             }
             
-            function on_click() {
-                click()
-                //setTimeout(click, 3000)
+            function on_click(number_of_clicks) {
+                if (audioCtx == null) {
+                    initAudio()
+                }
+                
+                var time = audioCtx.currentTime;
+                time += .5 // like, to give time for this loop
+                for (var i = 0; i < number_of_clicks; i++) {
+                    schedule_click(time + (i * .5))
+                }
             }
 
+            function stop() {
+                if (audioCtx == null) {
+                    initAudio()
+                }
+                var time = audioCtx.currentTime;
+                tickVolume.gain.cancelScheduledValues(time);
+                tickVolume.gain.setValueAtTime(0, time);
+            }
 
-            function click() {
-                initAudio()
-
-                time = this.audioCtx.currentTime;
-    // Silence the click.
-    //this.tickVolume.gain.cancelScheduledValues(time);
-    //this.tickVolume.gain.setValueAtTime(0, time);
-
-    // Audible click sound.
+            function schedule_click(time) {
+                tickVolume.gain.cancelScheduledValues(time);
+                tickVolume.gain.setValueAtTime(0, time);
                 tickVolume.gain.linearRampToValueAtTime(1, time + .001);
                 tickVolume.gain.linearRampToValueAtTime(0, time + .001 + .01);
-                //tickVolume.gain.linearRampToValueAtTime(1, time + .01);
-                //tickVolume.gain.linearRampToValueAtTime(0, time + .02);
-                setTimeout(click, 1000)
-             
             }
         </script>
     </head>
     <body>
-        <button onclick="on_click()">button</button>
+        <div></div><button onclick="on_click(1)">1 time</button></div>
+        <div></div><button onclick="on_click(10)">10 times</button></div>
+        <div></div><button onclick="on_click(100)">100 time</button></div>
+        <div></div><button onclick="on_click(1000)">1000 times</button></div>
+        <div></div><button onclick="on_click(3000)">3000 times</button></div>
+        <div></div><button onclick="stop()">stop</button></div>
     </body>
 </html>
