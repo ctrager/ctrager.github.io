@@ -25,6 +25,12 @@
             }
             
             function on_click() {
+                click()
+                //setTimeout(click, 3000)
+            }
+
+
+            function click() {
                 initAudio()
 
                 time = this.audioCtx.currentTime;
@@ -37,6 +43,7 @@
                 tickVolume.gain.linearRampToValueAtTime(0, time + .001 + .01);
                 //tickVolume.gain.linearRampToValueAtTime(1, time + .01);
                 //tickVolume.gain.linearRampToValueAtTime(0, time + .02);
+                setTimeout(click, 1000)
              
             }
         </script>

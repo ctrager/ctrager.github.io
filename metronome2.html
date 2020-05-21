@@ -35,6 +35,7 @@
         .increment {
             font-size: 16px;
             width: 70px;
+            height: 40px;
             padding: 0;
         }
 
@@ -81,7 +82,7 @@
 
         var beats = "1"
         var current_beat = 1
-
+  
         function my_onload() {
 
             char_to_increment.Q = 2
@@ -101,7 +102,7 @@
             my_bpm_input = document.getElementById("my_bpm_input")
             my_tap_results = document.getElementById("my_tap_results")
             my_volume_input = document.getElementById("my_volume_input")
-
+          
             // create a worker (another thread) for the timer
             // We want to imbed the javascript in this single file rather than a separate
             // file so this code creates a url based on data. Kinda like the embedded
@@ -212,6 +213,10 @@
             }
         }
 
+        function change_frequency(el) {
+            oscillator.frequency.value = el.value
+        }
+
         function increment_bpm(increment)  {
             // put focus back to play/stop otherwise spacebar affects last pressed button
             //my_play_button.focus()
@@ -219,14 +224,6 @@
             change_bpm()
             // so that the spacebar keeps working
             my_play_button.focus()
-        }
-
-        function change_sound_file(el) {
-            if (el.value == "woodblock") {
-                my_audio_element.src = woodblock_instrument
-            } else if (el.value == "beep") {
-                my_audio_element.src = beep_instrument
-            }
         }
 
         function change_beats(el) {
@@ -299,6 +296,7 @@
     </table>
 
     <br>
+    <br>
     <div id="my_volume_label">Volume (1 to 10)</div>
     <input id="my_volume_input" type="number" value="5" min="1" max="10" step="1" />
 
@@ -311,12 +309,16 @@
 
     <br>
     <br>
-    <input type="radio" name="instrument" value="beep" onclick="change_sound_file(this)" checked>Beep</input>
-    <input type="radio" name="instrument" value="woodblock" onclick="change_sound_file(this)">Woodblock</input>
+    <div>pitch</div>
+    <input type="radio" name="frequency" value="600" onclick="change_frequency(this)">600</input>
+    <input type="radio" name="frequency" value="800" onclick="change_frequency(this)">800</input>
+    <input type="radio" name="frequency" value="1000" onclick="change_frequency(this)" checked>1000</input>
+    <input type="radio" name="frequency" value="1200" onclick="change_frequency(this)">1200</input>
+    <input type="radio" name="frequency" value="1600" onclick="change_frequency(this)">1600</input>
 
     <br>
     <br>
-    <div id="my_tap_area_label">Tap J key to calc BPM, L key to reset</div>
+    <div>Tap J key to calc BPM, L key to reset</div>
     <div id="my_tap_results"></div>
     
 </body>
