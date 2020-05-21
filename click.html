@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script>
+            var tempo
+            var playing = false;
+    
+            var audioCtx = null;
+            var tick = null;
+            var tickVolume = null;
+            var soundHz = 800;
+
+            function initAudio() {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                tick = this.audioCtx.createOscillator();
+                tickVolume = this.audioCtx.createGain();
+
+                tick.type = 'sine'; 
+                tick.frequency.value = this.soundHz;
+                tickVolume.gain.value = 0;
+                
+                tick.connect(this.tickVolume);
+                tickVolume.connect(this.audioCtx.destination);
+                tick.start(0);  // No offset, start immediately.
+            }
+            
+            function on_click() {
+                initAudio()
+
+                time = this.audioCtx.currentTime;
+    // Silence the click.
+    //this.tickVolume.gain.cancelScheduledValues(time);
+    //this.tickVolume.gain.setValueAtTime(0, time);
+
+    // Audible click sound.
+                tickVolume.gain.linearRampToValueAtTime(1, time + .001);
+                tickVolume.gain.linearRampToValueAtTime(0, time + .001 + .01);
+                //tickVolume.gain.linearRampToValueAtTime(1, time + .01);
+                //tickVolume.gain.linearRampToValueAtTime(0, time + .02);
+             
+            }
+        </script>
+    </head>
+    <body>
+        <button onclick="on_click()">button</button>
+    </body>
+</html>

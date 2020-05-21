@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Corey's Metronome</title>
+    <style>
+        body {
+            font-family: verdana, arial;
+            font-size: 20px;
+            margin: 20px;
+        }
+
+        #my_title {
+            font-size: 18px;
+            letter-spacing: 3px;
+        }
+
+        #my_bpm_input {
+            background-color: yellow;
+            font-size: 40px;
+            width: 110px;
+        }
+
+        #my_play_button {
+            background-color: lightgreen;
+            font-size: 40px;
+        }
+
+        #my_volume_input {
+            font-size: 20px;
+            width: 40px;
+        }
+
+        .increment {
+            font-size: 16px;
+            width: 70px;
+            padding: 0;
+        }
+
+    </style>
+
+    <script id="my_worker_script_block">
+ 
+        var my_worker_interval
+        
+        self.onmessage = function(event) {
+            if (event.data[0] == "start") {
+                var milliseconds = event.data[1]
+                my_worker_interval = setInterval(function() {postMessage(null)}, milliseconds)
+            }
+            else {
+                // stop
+                clearInterval(my_worker_interval)
+            }
+        };
+
+    </script>
+
+    <script>
+
+        var AudioContext = window.AudioContext || window.webkitAudioContext; // cross browser    
+        var audio_context
+        var oscillator
+        var gain
+      
+        var my_worker
+        var my_audio_element
+        var my_play_button
+        var my_bpm_input
+        var my_tap_results
+        var my_volume_input
+
+        var char_to_increment = {}
+
+        var prev_milliseconds = 0 // for testing
+
+        var prev_tap_time = 0
+        var number_of_taps = 0
+        var accumulated_tap_time = 0
+
+        var beats = "1"
+        var current_beat = 1
+
+        function my_onload() {
+
+            char_to_increment.Q = 2
+            char_to_increment.W = 4
+            char_to_increment.E = 6
+            char_to_increment.R = 8
+            char_to_increment.T = 10
+
+            char_to_increment.A = -2
+            char_to_increment.S = -4
+            char_to_increment.D = -6
+            char_to_increment.F = -8
+            char_to_increment.G = -10
+                      
+            my_audio_element = document.getElementById("my_audio")
+            my_play_button = document.getElementById("my_play_button")
+            my_bpm_input = document.getElementById("my_bpm_input")
+            my_tap_results = document.getElementById("my_tap_results")
+            my_volume_input = document.getElementById("my_volume_input")
+
+            // create a worker (another thread) for the timer
+            // We want to imbed the javascript in this single file rather than a separate
+            // file so this code creates a url based on data. Kinda like the embedded
+            // sound files.
+            var javascript_code = document.getElementById('my_worker_script_block').textContent
+            var worker_blob = new Blob([javascript_code], {type: "text/javascript"});
+            window.URL = window.URL || (window.webkitURL); // simple polyfill
+            my_worker = new Worker(window.URL.createObjectURL(worker_blob));
+            
+            // handle the interval
+            my_worker.onmessage = play_one_click
+        }
+
+        function play_or_stop() {
+
+            // can't do this in onload because browser wants an explicit user gesture
+            if (audio_context == null) {
+                audio_context = new AudioContext()
+
+                // There's a "node graph"  oscillator->gain->destination
+                oscillator = audio_context.createOscillator()
+                oscillator.type = "sine"
+                oscillator.frequency.value = 1000
+                gain = audio_context.createGain()
+                gain.gain.value = 0
+                oscillator.connect(gain)
+                gain.connect(audio_context.destination)
+                oscillator.start()
+            }
+
+            if (my_play_button.innerText == "Play") {
+                play()
+                // toggle text
+                my_play_button.innerText = "Stop"
+                my_play_button.style.backgroundColor = "red"
+            } else {
+                // Tell worker to stop timer
+                my_worker.postMessage(["stop"])
+                // toggle text
+                my_play_button.innerText = "Play"
+                my_play_button.style.backgroundColor = "lightgreen"
+            }
+        }
+
+        function play() {
+            var milliseconds = 60 * 1000 / my_bpm_input.value
+            // tell worker to start timer
+            my_worker.postMessage(["start", milliseconds])
+        }
+
+        function play_one_click() {
+            //to view accuracy
+            //var now = new Date().getTime()
+            //console.log(prev_milliseconds - now)
+            //prev_milliseconds = now
+            
+            var volume
+
+            if (beats == "1") {
+                volume = my_volume_input.value
+                volume = volume / 10.0 // normal loudness
+            }
+            else {
+                volume = calc_accented_volume(beats)
+            }
+            
+            //my_audio_element.volume = volume
+            var time = audio_context.currentTime;
+            // Silence the click.
+            gain.gain.cancelScheduledValues(time);
+            gain.gain.setValueAtTime(0, time);
+
+            // Audible click sound.
+            gain.gain.linearRampToValueAtTime(volume, time + .001);
+            gain.gain.linearRampToValueAtTime(0, time + .001 + .01);
+        }
+
+        function calc_accented_volume(beats) {
+            
+            var volume = my_volume_input.value
+            
+            if (current_beat == 1) {
+                volume = (volume / 10.0) * 2.0 // louder
+            }
+            else {
+                volume = (volume / 10.0) / 2 // softer
+            }
+
+            // api doesn't like numbers > 1.0  
+            if (volume > 1.0) {
+                volume = 1.0
+            }
+
+            // 1,2,3   1,2,3  etc
+            current_beat++
+            if (current_beat > beats) {
+                current_beat = 1
+            }
+
+            return volume            
+        }
+
+        function change_bpm() {
+            // are we currently playing?
+            if (my_play_button.innerText == "Stop") {
+                my_worker.postMessage(["stop"])
+                play()
+            }
+        }
+
+        function increment_bpm(increment)  {
+            // put focus back to play/stop otherwise spacebar affects last pressed button
+            //my_play_button.focus()
+            my_bpm_input.value = parseInt(my_bpm_input.value) + increment
+            change_bpm()
+            // so that the spacebar keeps working
+            my_play_button.focus()
+        }
+
+        function change_sound_file(el) {
+            if (el.value == "woodblock") {
+                my_audio_element.src = woodblock_instrument
+            } else if (el.value == "beep") {
+                my_audio_element.src = beep_instrument
+            }
+        }
+
+        function change_beats(el) {
+            beats = el.value
+        }
+
+        function handle_key(event) {
+            // +2, 4, -2, -4, etc
+            var char = String.fromCharCode(event.keyCode);
+            var increment = char_to_increment[char]
+            if (increment) {
+                increment_bpm(increment)
+                return
+            }
+
+            if (char == 'J') {
+                // calc bpm from taps
+                var now = new Date().getTime()
+                if (prev_tap_time != 0) {
+                    var delta_milliseconds = now - prev_tap_time
+                    accumulated_tap_time += delta_milliseconds
+                    number_of_taps++
+                    var avg_milliseconds = accumulated_tap_time / number_of_taps
+                    var last = Math.round(60 * 1000 / delta_milliseconds)
+                    var bpm = Math.round(60 * 1000 / avg_milliseconds)
+                    my_tap_results.innerText = "last tap=" + last + ", avg bpm=" + bpm 
+                }
+                else {
+                    my_tap_results.innerText = "tapping started..."
+                }
+                prev_tap_time = now     
+            }
+            else if (char == 'L') {
+                // clear tapping info
+                prev_tap_time = 0
+                number_of_taps = 0
+                accumulated_tap_time = 0
+                my_tap_results.innerText = ""
+            }
+        }
+    </script>
+</head>
+
+<body onload="my_onload()" onkeydown="handle_key(event)">
+
+    <div id="my_title">Corey's Javascript Metronome</div>
+    <br>
+
+    <div id="my_bpm_label">BPM</div>
+    <input id="my_bpm_input" onchange="change_bpm()" type="number" min="40" max="300" step="1" value="120" />
+    <button onclick="play_or_stop()" id="my_play_button">Play</button>
+
+    <br>
+   
+    <table>
+        <tr>
+            <td><button class="increment" onclick="increment_bpm(2)">+2 Q</button></td>
+            <td><button class="increment" onclick="increment_bpm(4)">+4 W</button></td>
+            <td><button class="increment" onclick="increment_bpm(6)">+6 E</button></td>
+            <td><button class="increment" onclick="increment_bpm(8)">+8 R</button></td>
+            <td><button class="increment" onclick="increment_bpm(10)">+10 T</button></td>
+        </tr>
+        <tr>
+            <td><button class="increment" onclick="increment_bpm(-2)">-2 A</button></td>
+            <td><button class="increment" onclick="increment_bpm(-4)">-4 S</button></td>
+            <td><button class="increment" onclick="increment_bpm(-6)">-6 D</button></td>
+            <td><button class="increment" onclick="increment_bpm(-8)">-8 F</button></td>
+            <td><button class="increment" onclick="increment_bpm(-10)">-10 G</button></td>
+        </tr>
+    </table>
+
+    <br>
+    <div id="my_volume_label">Volume (1 to 10)</div>
+    <input id="my_volume_input" type="number" value="5" min="1" max="10" step="1" />
+
+    <br>
+    <br>
+    <input type="radio" name="beats" value="1" onclick="change_beats(this)" checked>no accent</input>
+    <input type="radio" name="beats" value="4" onclick="change_beats(this)">4/4</input>
+    <input type="radio" name="beats" value="3" onclick="change_beats(this)">3/4</input>
+    <input type="radio" name="beats" value="5" onclick="change_beats(this)">5/4</input>
+
+    <br>
+    <br>
+    <input type="radio" name="instrument" value="beep" onclick="change_sound_file(this)" checked>Beep</input>
+    <input type="radio" name="instrument" value="woodblock" onclick="change_sound_file(this)">Woodblock</input>
+
+    <br>
+    <br>
+    <div id="my_tap_area_label">Tap J key to calc BPM, L key to reset</div>
+    <div id="my_tap_results"></div>
+    
+</body>
+
+</html>
