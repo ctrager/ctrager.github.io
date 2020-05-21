@@ -194,6 +194,10 @@
             return volume            
         }
 
+        function change_volume() {
+            stop_start()
+        }
+
         function change_frequency(el) {
             oscillator.frequency.value = el.value
             stop_start()
@@ -217,6 +221,26 @@
             // so that the spacebar keeps working
             my_play_button.focus()
         }
+
+        function increment_volume(increment) {
+
+            var volume = parseInt(my_volume_input.value)
+            
+            volume += increment
+
+            if (volume > 10) {
+                volume = 10
+            }
+            else {
+                if (volume < 1) {
+                    volume = 1
+                }
+            }
+
+            my_volume_input.value = volume
+            stop_start()
+        }
+
 
         function handle_tap() {
             
@@ -298,23 +322,25 @@
     <br>
     <br>
     <div id="my_volume_label">Volume (1 to 10)</div>
-    <input id="my_volume_input" type="number" value="5" min="1" max="10" step="1" />
+    <input id="my_volume_input" onchange="change_volume()" type="number" value="5" min="1" max="10" step="1" />
+    <button onclick="increment_volume(1)">+</button>
+    <button onclick="increment_volume(-1)">-</button>
 
     <br>
     <br>
-    <input type="radio" name="beats" value="1" onclick="change_beats(this)" checked>no accent</input>
-    <input type="radio" name="beats" value="4" onclick="change_beats(this)">4/4</input>
-    <input type="radio" name="beats" value="3" onclick="change_beats(this)">3/4</input>
-    <input type="radio" name="beats" value="5" onclick="change_beats(this)">5/4</input>
+    <label><input type="radio" name="beats" value="1" onclick="change_beats(this)" checked>no accent</input></label>
+    <label><input type="radio" name="beats" value="4" onclick="change_beats(this)">4/4</input></label>
+    <label><input type="radio" name="beats" value="3" onclick="change_beats(this)">3/4</input></label>
+    <label><input type="radio" name="beats" value="5" onclick="change_beats(this)">5/4</input></label>
 
     <br>
     <br>
     <div>pitch</div>
-    <input type="radio" name="frequency" value="600" onclick="change_frequency(this)">600</input>
-    <input type="radio" name="frequency" value="800" onclick="change_frequency(this)">800</input>
-    <input type="radio" name="frequency" value="1000" onclick="change_frequency(this)" checked>1000</input>
-    <input type="radio" name="frequency" value="1200" onclick="change_frequency(this)">1200</input>
-    <input type="radio" name="frequency" value="1600" onclick="change_frequency(this)">1600</input>
+    <label><input type="radio" name="frequency" value="600" onclick="change_frequency(this)">600</input></label>
+    <label><input type="radio" name="frequency" value="800" onclick="change_frequency(this)">800</input></label>
+    <label><input type="radio" name="frequency" value="1000" onclick="change_frequency(this)" checked>1000</input></label>
+    <label><input type="radio" name="frequency" value="1200" onclick="change_frequency(this)">1200</input></label>
+    <label><input type="radio" name="frequency" value="1600" onclick="change_frequency(this)">1600</input></label>
 
     <br>
     <br>
