@@ -1,64 +1,29 @@
-<!DOCTYPE html>
 <html>
-    <head>
-        <script>
-            var tempo
-            var playing = false;
-    
-            var audioCtx = null;
-            var tick = null;
-            var tickVolume = null;
-            var soundHz = 800;
 
-            function initAudio() {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                tick = this.audioCtx.createOscillator();
-                tickVolume = this.audioCtx.createGain();
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+    <title>click</title>
 
-                tick.type = 'sine'; 
-                tick.frequency.value = this.soundHz;
-                tickVolume.gain.value = 0;
-                
-                tick.connect(this.tickVolume);
-                tickVolume.connect(this.audioCtx.destination);
-                tick.start(0);  
-            }
-            
-            function on_click(number_of_clicks) {
-                if (audioCtx == null) {
-                    initAudio()
-                }
-                
-                var time = audioCtx.currentTime;
-                time += .5 // like, to give time for this loop
-                for (var i = 0; i < number_of_clicks; i++) {
-                    schedule_click(time + (i * .5))
-                }
-            }
+    <script type="text/javascript">
 
-            function stop() {
-                if (audioCtx == null) {
-                    initAudio()
-                }
-                var time = audioCtx.currentTime;
-                tickVolume.gain.cancelScheduledValues(time);
-                tickVolume.gain.setValueAtTime(0, time);
-            }
+        var audioCtx
+        var analyser
+        var source
 
-            function schedule_click(time) {
-                tickVolume.gain.cancelScheduledValues(time);
-                tickVolume.gain.setValueAtTime(0, time);
-                tickVolume.gain.linearRampToValueAtTime(1, time + .001);
-                tickVolume.gain.linearRampToValueAtTime(0, time + .001 + .01);
-            }
-        </script>
-    </head>
-    <body>
-        <div></div><button onclick="on_click(1)">1 time</button></div>
-        <div></div><button onclick="on_click(10)">10 times</button></div>
-        <div></div><button onclick="on_click(100)">100 time</button></div>
-        <div></div><button onclick="on_click(1000)">1000 times</button></div>
-        <div></div><button onclick="on_click(3000)">3000 times</button></div>
-        <div></div><button onclick="stop()">stop</button></div>
-    </body>
+        function myfunc() {
+
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            analyser = audioCtx.createAnalyser();
+            source = audioCtx.createMediaStreamSource(stream);
+            source.connect(analyser);
+            analyser.connect(audioCtx.destination);
+        }
+    </script>
+
+</head>
+
+<body>
+    <div><button onclick="myfunc()">start</button></div>
+</body>
+
 </html>
