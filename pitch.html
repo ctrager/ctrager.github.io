@@ -33,6 +33,7 @@
         var queue_length = 20
         var freq_el
         var most_common_freq_el
+        var offset_el
 
         function init() {
 
@@ -43,6 +44,8 @@
 
             freq_el = document.getElementById("freq")
             most_common_freq_el = document.getElementById("most_common_freq")
+            offset_el = document.getElementById("offset")
+            
             audioCtx = new(window.AudioContext || window.webkitAudioContext)();
             analyser = audioCtx.createAnalyser();
             //analyser.fftSize = 4096
@@ -105,16 +108,10 @@
             // Start an offset of 1. No point in comparing the wave
             // to itself at offset 0.
 
-            min_index = 0
-            max_index = half_fft_array_size
-            //max_index = analyser.fft
-
-
-            for (let offset = min_index + 1; offset < max_index; offset++) {
+            for (let offset = 1; offset < half_fft_array_size; offset++) {
 
                 difference = 0;
-                half_fft_array_size
-                for (let i = 0; i < max_index; i++) {
+                for (let i = 0; i < half_fft_array_size; i++) {
                     // For this iteration, work out what the
                     // difference is between the wave and the
                     // offset version.
@@ -144,6 +141,7 @@
             var most_common_freq = mode(queue)
             most_common_freq_el.innerText = most_common_freq
             freq_el.innerText = freq
+            offset_el.innerText = smallestDifferenceOffset
         }
 
 
@@ -177,6 +175,7 @@
     <div><button onclick="stop()">stop</button></div>
     <div id="most_common_freq">0</div>
     <div id="freq">0</div>
+    <div id="offset">0</div>
 
 </body>
 
