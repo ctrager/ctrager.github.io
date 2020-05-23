@@ -1,0 +1,183 @@
+<html>
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+    <title>click</title>
+
+    <script type="text/javascript">
+        var audioCtx
+        var analyser
+        var stream
+        var source
+        var track
+
+        var something
+
+        var constraints = {
+            audio: true,
+            video: false
+        };
+
+        var my_stream
+
+        var freq_array
+        var fft_array
+        var freq_interval
+        var half_fft_array_size
+
+        var running = false
+        var ready = false
+        var first_time = true
+
+        var queue = []
+        var queue_length = 20
+        var freq_el
+        var most_common_freq_el
+
+        function init() {
+
+            // init the queue
+            for (var i = 0; i < queue_length; i++) {
+                queue.push(0)
+            }
+
+            freq_el = document.getElementById("freq")
+            most_common_freq_el = document.getElementById("most_common_freq")
+            audioCtx = new(window.AudioContext || window.webkitAudioContext)();
+            analyser = audioCtx.createAnalyser();
+            //analyser.fftSize = 4096
+            fft_array = new Float32Array(analyser.fftSize)
+            half_fft_array_size = fft_array.length / 2
+
+            navigator.mediaDevices.getUserMedia(constraints)
+                .then(function (stream) {
+                    my_stream = stream
+                    source = audioCtx.createMediaStreamSource(my_stream);
+                    source.connect(analyser);
+                    ready = true
+                    console.log("ready")
+                })
+                .catch(function (err) {
+                    console.log(err)
+                })
+        }
+
+        function start() {
+            if (first_time) {
+                first_time = false
+                init()
+            }
+            running = true
+            requestAnimationFrame(frame_callback)
+        }
+
+        function stop() {
+            running = false
+            console.log("sample rate", audioCtx.sampleRate)
+            console.log("fftSize", analyser.fftSize)
+        }
+
+        function frame_callback() {
+
+            if (!running) return;
+
+            if (!ready) {
+                requestAnimationFrame(frame_callback)
+                return
+            }
+
+            //get_loudest_freq()
+            get_freq_via_autocorrelation()
+
+            requestAnimationFrame(frame_callback)
+
+        }
+
+        function get_freq_via_autocorrelation() {
+            let difference = 0;
+            let smallestDifference = Number.POSITIVE_INFINITY;
+            let smallestDifferenceOffset = 0;
+
+
+            // Fill up the wave data.
+            analyser.getFloatTimeDomainData(fft_array);
+
+            // Start an offset of 1. No point in comparing the wave
+            // to itself at offset 0.
+
+            min_index = 0
+            max_index = half_fft_array_size
+            //max_index = analyser.fft
+
+
+            for (let offset = min_index + 1; offset < max_index; offset++) {
+
+                difference = 0;
+                half_fft_array_size
+                for (let i = 0; i < max_index; i++) {
+                    // For this iteration, work out what the
+                    // difference is between the wave and the
+                    // offset version.
+                    difference += Math.abs(fft_array[i] - fft_array[i + offset]);
+                }
+
+                // If this is the smallest difference so far hold it.
+                if (difference < smallestDifference) {
+                    smallestDifference = difference;
+                    smallestDifferenceOffset = offset;
+                }
+            }
+            // Now we know which offset yielded the smallest
+            // difference we can convert it to a frequency.
+            // console.log("freq", audioCtx.sampleRate / smallestDifferenceOffset, smallestDifferenceOffset)
+
+
+            var freq = audioCtx.sampleRate / smallestDifferenceOffset
+
+            if (freq == audioCtx.sampleRate) {
+                return
+            }
+
+            queue.shift()
+            queue.push(freq)
+
+            var most_common_freq = mode(queue)
+            most_common_freq_el.innerText = most_common_freq
+            freq_el.innerText = freq
+        }
+
+
+
+        function mode(array) {
+            if (array.length == 0)
+                return null;
+            var modeMap = {};
+            var maxEl = array[0],
+                maxCount = 1;
+            for (var i = 0; i < array.length; i++) {
+                var el = array[i];
+                if (modeMap[el] == null)
+                    modeMap[el] = 1;
+                else
+                    modeMap[el]++;
+                if (modeMap[el] > maxCount) {
+                    maxEl = el;
+                    maxCount = modeMap[el];
+                }
+            }
+            return maxEl;
+        }
+    </script>
+</head>
+
+<body>
+
+
+    <div><button onclick="start()">start</button></div>
+    <div><button onclick="stop()">stop</button></div>
+    <div id="most_common_freq">0</div>
+    <div id="freq">0</div>
+
+</body>
+
+</html>
