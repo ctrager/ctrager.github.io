@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    
+
     <title>Corey's Drone Tones</title>
     <style>
-
         body {
             font-family: verdana, arial;
             font-size: 20px;
@@ -31,7 +31,7 @@
             color: black;
             font-weight: normal;
         }
- 
+
         .pressed {
             color: red;
             font-weight: bold
@@ -40,7 +40,6 @@
         #a440 {
             background: lightgreen;
         }
-
     </style>
     <script>
         var AudioContext = window.AudioContext || window.webkitAudioContext; // cross browser    
@@ -51,26 +50,26 @@
         var gain_input
         var prev_frequency
         var prev_button
-   
+
         function on_load() {
             gain_input = document.getElementById("gain_input")
         }
 
         function change_gain() {
-            gain_factor = gain_input.value/100.0
+            gain_factor = gain_input.value / 100.0
             gain.gain.value = gain_factor
         }
 
         function start(frequency, button) {
 
             stop()
-            
+
             // toggling any button is the same as stop
             if (frequency == prev_frequency) {
                 prev_frequency = null
                 return
-            } 
-         
+            }
+
             prev_frequency = frequency
 
             // can't do this in onload because browser wants an explicit user gesture
@@ -84,7 +83,7 @@
                 oscillator.connect(gain)
                 oscillator.start()
             }
-            
+
             oscillator.frequency.value = frequency
 
             // connect and disconnect is on and off
@@ -99,8 +98,7 @@
             try {
                 gain.disconnect()
                 prev_button.className = "not_pressed"
-            } 
-            catch (err) {
+            } catch (err) {
                 // swallow
             }
         }
@@ -142,14 +140,14 @@
             <td><button onclick="start(392.00, this)">G</button></td>
             <td><button onclick="start(415.30, this)">G#</button></td>
         </tr>
-            <td><button onclick="start(440, this)" id="a440">A440</button></td>
-            <td><button onclick="start(466.16, this)">A#</button></td>
-            <td><button onclick="start(493.88, this)">B</button></td>
-            <td><button onclick="start(523.25, this)">C</button></td>
-            <td><button onclick="start(554.37, this)">C#</button></td>
-            <td><button onclick="start(587.33, this)">D</button></td>
-            <td><button onclick="start(622.25, this)">D#</button></td>
-            <td><button onclick="start(659.25, this)">E</button></td>
+        <td><button onclick="start(440, this)" id="a440">A440</button></td>
+        <td><button onclick="start(466.16, this)">A#</button></td>
+        <td><button onclick="start(493.88, this)">B</button></td>
+        <td><button onclick="start(523.25, this)">C</button></td>
+        <td><button onclick="start(554.37, this)">C#</button></td>
+        <td><button onclick="start(587.33, this)">D</button></td>
+        <td><button onclick="start(622.25, this)">D#</button></td>
+        <td><button onclick="start(659.25, this)">E</button></td>
         </tr>
     </table>
 
@@ -164,4 +162,5 @@
     <input id="gain_input" type="number" onchange="change_gain()" min="1" max="100" value="50"></input>
 
 </body>
+
 </html>

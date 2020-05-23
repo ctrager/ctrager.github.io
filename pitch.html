@@ -34,6 +34,9 @@
         var freq_el
         var most_common_freq_el
         var offset_el
+        var threshold = 0.1
+        var probabilityThreshold = 0.1
+        var fftSize = 4096 // 2048, 4096, 8192, 16384, 32768
 
         function init() {
 
@@ -43,12 +46,11 @@
             }
 
             freq_el = document.getElementById("freq")
-            most_common_freq_el = document.getElementById("most_common_freq")
-            offset_el = document.getElementById("offset")
-            
+
             audioCtx = new(window.AudioContext || window.webkitAudioContext)();
             analyser = audioCtx.createAnalyser();
-            //analyser.fftSize = 4096
+            // 2048, 4096, 8192, 16384, and 32768
+            analyser.fftSize = 4096
             fft_array = new Float32Array(analyser.fftSize)
             half_fft_array_size = fft_array.length / 2
 
@@ -90,63 +92,228 @@
             }
 
             //get_loudest_freq()
-            get_freq_via_autocorrelation()
+            analyser.getFloatTimeDomainData(fft_array);
+
+            let freq = (get_freq_via_yin(fft_array))
+
+            // the freq is a float and jumps around a lot, so lets do a couple
+            // things to steady it.  Rounds 123.4567 to 123.46, and take the most
+            // frequently occuring value of the last N readings
+
+            if (freq > 3000) {
+                freq = 0
+            }
+
+            if (freq) {
+                queue.shift()
+                queue.push(freq.toFixed(1))
+
+                let mode = get_mode(queue)
+                let note = frequency_to_note(freq)
+                freq_el.innerText = mode + ", " + note
+            }
 
             requestAnimationFrame(frame_callback)
 
         }
 
-        function get_freq_via_autocorrelation() {
-            let difference = 0;
-            let smallestDifference = Number.POSITIVE_INFINITY;
-            let smallestDifferenceOffset = 0;
+        // from https://github.com/peterkhayes/pitchfinder/blob/master/src/detectors/yin.ts
+        function get_freq_via_yin(fft_array) {
 
 
-            // Fill up the wave data.
-            analyser.getFloatTimeDomainData(fft_array);
+            // Set buffer size to the highest power of two below the provided buffer's length.
+            let bufferSize;
+            for (bufferSize = 1; bufferSize < fft_array.length; bufferSize *= 2);
+            bufferSize /= 2;
 
-            // Start an offset of 1. No point in comparing the wave
-            // to itself at offset 0.
 
-            for (let offset = 1; offset < half_fft_array_size; offset++) {
+            // Set up the yinBuffer as described in step one of the YIN paper.
+            const yinBufferLength = bufferSize / 2;
+            const yinBuffer = new Float32Array(yinBufferLength);
 
-                difference = 0;
-                for (let i = 0; i < half_fft_array_size; i++) {
-                    // For this iteration, work out what the
-                    // difference is between the wave and the
-                    // offset version.
-                    difference += Math.abs(fft_array[i] - fft_array[i + offset]);
-                }
+            let probability = 0,
+                tau;
 
-                // If this is the smallest difference so far hold it.
-                if (difference < smallestDifference) {
-                    smallestDifference = difference;
-                    smallestDifferenceOffset = offset;
+            // Compute the difference function as described in step 2 of the YIN paper.
+            for (let t = 0; t < yinBufferLength; t++) {
+                yinBuffer[t] = 0;
+            }
+            for (let t = 1; t < yinBufferLength; t++) {
+                for (let i = 0; i < yinBufferLength; i++) {
+                    const delta = fft_array[i] - fft_array[i + t];
+                    yinBuffer[t] += delta * delta;
                 }
             }
-            // Now we know which offset yielded the smallest
-            // difference we can convert it to a frequency.
-            // console.log("freq", audioCtx.sampleRate / smallestDifferenceOffset, smallestDifferenceOffset)
 
-
-            var freq = audioCtx.sampleRate / smallestDifferenceOffset
-
-            if (freq == audioCtx.sampleRate) {
-                return
+            // Compute the cumulative mean normalized difference as described in step 3 of the paper.
+            yinBuffer[0] = 1;
+            yinBuffer[1] = 1;
+            let runningSum = 0;
+            for (let t = 1; t < yinBufferLength; t++) {
+                runningSum += yinBuffer[t];
+                yinBuffer[t] *= t / runningSum;
             }
 
-            queue.shift()
-            queue.push(freq)
+            // Compute the absolute threshold as described in step 4 of the paper.
+            // Since the first two positions in the array are 1,
+            // we can start at the third position.
+            for (tau = 2; tau < yinBufferLength; tau++) {
+                if (yinBuffer[tau] < threshold) {
+                    while (tau + 1 < yinBufferLength && yinBuffer[tau + 1] < yinBuffer[tau]) {
+                        tau++;
+                    }
+                    // found tau, exit loop and return
+                    // store the probability
+                    // From the YIN paper: The threshold determines the list of
+                    // candidates admitted to the set, and can be interpreted as the
+                    // proportion of aperiodic power tolerated
+                    // within a periodic signal.
+                    //
+                    // Since we want the periodicity and and not aperiodicity:
+                    // periodicity = 1 - aperiodicity
+                    probability = 1 - yinBuffer[tau];
+                    break;
+                }
+            }
 
-            var most_common_freq = mode(queue)
-            most_common_freq_el.innerText = most_common_freq
-            freq_el.innerText = freq
-            offset_el.innerText = smallestDifferenceOffset
+            // if no pitch found, return null.
+            if (tau === yinBufferLength || yinBuffer[tau] >= threshold) {
+                return null;
+            }
+
+            // If probability too low, return -1.
+            if (probability < probabilityThreshold) {
+                return null;
+            }
+
+            /**
+             * Implements step 5 of the AUBIO_YIN paper. It refines the estimated tau
+             * value using parabolic interpolation. This is needed to detect higher
+             * frequencies more precisely. See http://fizyka.umk.pl/nrbook/c10-2.pdf and
+             * for more background
+             * http://fedc.wiwi.hu-berlin.de/xplore/tutorials/xegbohtmlnode62.html
+             */
+            let betterTau, x0, x2;
+            if (tau < 1) {
+                x0 = tau;
+            } else {
+                x0 = tau - 1;
+            }
+            if (tau + 1 < yinBufferLength) {
+                x2 = tau + 1;
+            } else {
+                x2 = tau;
+            }
+            if (x0 === tau) {
+                if (yinBuffer[tau] <= yinBuffer[x2]) {
+                    betterTau = tau;
+                } else {
+                    betterTau = x2;
+                }
+            } else if (x2 === tau) {
+                if (yinBuffer[tau] <= yinBuffer[x0]) {
+                    betterTau = tau;
+                } else {
+                    betterTau = x0;
+                }
+            } else {
+                const s0 = yinBuffer[x0];
+                const s1 = yinBuffer[tau];
+                const s2 = yinBuffer[x2];
+                // fixed AUBIO implementation, thanks to Karl Helgason:
+                // (2.0f * s1 - s2 - s0) was incorrectly multiplied with -1
+                betterTau = tau + (s2 - s0) / (2 * (2 * s1 - s2 - s0));
+            }
+
+            return audioCtx.sampleRate / betterTau;
         }
 
+        // from https://newt.phys.unsw.edu.au/music/note/
+        function frequency_to_note (input) {
+            if ((input < 27.5) || (input > 14080))
+                return ""
 
+            var A4 = 440.0;
+            var A4_INDEX = 57;
+frequency_to_note
+            var notes = [
+                "C0", "C#0", "D0", "D#0", "E0", "F0", "F#0", "G0", "G#0", "A0", "A#0", "B0",
+                "C1", "C#1", "D1", "D#1", "E1", "F1", "F#1", "G1", "G#1", "A1", "A#1", "B1",
+                "C2", "C#2", "D2", "D#2", "E2", "F2", "F#2", "G2", "G#2", "A2", "A#2", "B2",
+                "C3", "C#3", "D3", "D#3", "E3", "F3", "F#3", "G3", "G#3", "A3", "A#3", "B3",
+                "C4", "C#4", "D4", "D#4", "E4", "F4", "F#4", "G4", "G#4", "A4", "A#4", "B4",
+                "C5", "C#5", "D5", "D#5", "E5", "F5", "F#5", "G5", "G#5", "A5", "A#5", "B5",
+                "C6", "C#6", "D6", "D#6", "E6", "F6", "F#6", "G6", "G#6", "A6", "A#6", "B6",
+                "C7", "C#7", "D7", "D#7", "E7", "F7", "F#7", "G7", "G#7", "A7", "A#7", "B7",
+                "C8", "C#8", "D8", "D#8", "E8", "F8", "F#8", "G8", "G#8", "A8", "A#8", "B8",
+                "C9", "C#9", "D9", "D#9", "E9", "F9", "F#9", "G9", "G#9", "A9", "A#9", "B9"
+            ];
 
-        function mode(array) {
+            var MINUS = 0;
+            var PLUS = 1;
+
+            var frequency;
+            var r = Math.pow(2.0, 1.0 / 12.0);
+            var cent = Math.pow(2.0, 1.0 / 1200.0);
+            var r_index = 0;
+            var cent_index = 0;
+            var side;
+
+            frequency = A4;
+
+            if (input >= frequency) {
+                while (input >= r * frequency) {
+                    frequency = r * frequency;
+                    r_index++;
+                }
+                while (input > cent * frequency) {
+                    frequency = cent * frequency;
+                    cent_index++;
+                }
+                if ((cent * frequency - input) < (input - frequency))
+                    cent_index++;
+                if (cent_index > 50) {
+                    r_index++;
+                    cent_index = 100 - cent_index;
+                    if (cent_index != 0)
+                        side = MINUS;
+                    else
+                        side = PLUS;
+                } else
+                    side = PLUS;
+            } else {
+                while (input <= frequency / r) {
+                    frequency = frequency / r;
+                    r_index--;
+                }
+                while (input < frequency / cent) {
+                    frequency = frequency / cent;
+                    cent_index++;
+                }
+                if ((input - frequency / cent) < (frequency - input))
+                    cent_index++;
+                if (cent_index >= 50) {
+                    r_index--;
+                    cent_index = 100 - cent_index;
+                    side = PLUS;
+                } else {
+                    if (cent_index != 0)
+                        side = MINUS;
+                    else
+                        side = PLUS;
+                }
+            }
+
+            var result = notes[A4_INDEX + r_index];
+            if (side == PLUS)
+                result = result + " plus ";
+            else
+                result = result + " minus ";
+            result = result + cent_index + " cents";
+            return result;
+        }
+
+        function get_mode(array) {
             if (array.length == 0)
                 return null;
             var modeMap = {};
@@ -170,12 +337,9 @@
 
 <body>
 
-
     <div><button onclick="start()">start</button></div>
     <div><button onclick="stop()">stop</button></div>
-    <div id="most_common_freq">0</div>
     <div id="freq">0</div>
-    <div id="offset">0</div>
 
 </body>
 
