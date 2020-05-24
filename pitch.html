@@ -241,7 +241,7 @@
             }
 
             octave += parseInt(transpose_octave_input.value)
-            
+
             // if (octave > 5) {
             //     console.log(note)
             // }
@@ -522,12 +522,12 @@
     <div><button onclick="start()">start</button><button onclick="stop()">stop</button></div>
     <div id="note_el"></div>
 
-    <div>cents threshold (4 to 20) - bigger is more forgiving
+    <div>cents threshold (2 to 49) - bigger is more forgiving
         <input id="cents_threshold_input" onchange="restart()" value="12"></input>
     </div>
 
-    <div>steady factor (2 to 40) - bigger is more accurate but laggier
-        <input id="steady_factor_input" onchange="restart()" value="12"></input>
+    <div>steady factor (2 to 60) - bigger is more accurate but laggier
+        <input id="steady_factor_input" onchange="restart()" value="30"></input>
     </div>
 
     <div>fftSize - 2048, 4096, 8192, 16384, 32768 - bigger is more accurate but laggier
