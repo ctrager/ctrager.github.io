@@ -1,20 +1,20 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <title>Corey's Pitch Dectection</title>
 
     <style>
-        #my_canvas {
+        #canvas_el {
             background-color: lightgoldenrodyellow;
             border: 1px solid gray;
-            xwidth: 800px;
-            xheight: 400px;
         }
+
         body {
             font-family: verdana, arial;
-            font-size: 12px;
+            font-size: 16px;
             margin: 20px;
         }
 
@@ -22,81 +22,78 @@
             font-size: 16px;
         }
     </style>
-    
+
     <script type="text/javascript">
         var audioCtx
         var analyser
         var media_stream_source
-  
+
         var user_media_constraints = {
             audio: true,
             video: false
         };
 
         var fft_array
-       
+
         var running = false
         var ready = false
         var first_time = true
 
         var queue = []
         var note_el
+        var cents_threshold_input
+        var steady_factor_input
+        var fftsize_input
         var canvas_el
-        var prev_note = ""
 
-        // important constants to tune
-        const queue_length = 12
-        const fftSize = 8192 // 2048, 4096, 8192, 16384, 32768
-    
+        var number_of_staffs = 4
+        var prev_note = ""
+        var cents_threshold
+        var queue_length
+        var fftSize // 2048, 4096, 8192, 16384, 32768
+
         // get_freq_via_yin constants
         const yin_threshold = 0.1
         const yin_probabilityThreshold = 0.1
-  
+
         // canvas
         var ctx
-    
+
 
         function on_load() {
 
-            note_el = document.getElementById("note")
-            canvas_el = document.getElementById("my_canvas")
+            note_el = document.getElementById("note_el")
+            cents_threshold_input = document.getElementById("cents_threshold_input")
+            steady_factor_input = document.getElementById("steady_factor_input")
+            fftsize_input = document.getElementById("fftsize_input")
+
+            canvas_el = document.getElementById("canvas_el")
             ctx = canvas_el.getContext("2d");
 
             draw_staff()
 
             //test
+            set_config()
             var f = 440
             for (var i = 0; i < 50; i++) {
-               
+
                 col_number++
                 draw_note(frequency_to_note(f))
                 f *= 1.02
             }
-            
+
             f = 440
             for (var i = 0; i < 30; i++) {
-               
+
                 col_number++
                 draw_note(frequency_to_note(f))
                 f *= .97
-            }
-
-
-
-            // init the queue
-            for (var i = 0; i < queue_length; i++) {
-                queue.push(0)
             }
 
         }
 
         function init() {
 
-            audioCtx = new(window.AudioContext || window.webkitAudioContext)();
-            analyser = audioCtx.createAnalyser();
-            analyser.fftSize = fftSize
-            fft_array = new Float32Array(analyser.fftSize)
-  
             navigator.mediaDevices.getUserMedia(user_media_constraints)
                 .then(function (stream) {
                     media_stream_source = audioCtx.createMediaStreamSource(stream);
@@ -109,16 +106,42 @@
                 })
         }
 
+        function set_config() {
+            // init the queue
+            queue = []
+            queue_length = steady_factor_input.value
+            for (var i = 0; i < queue_length; i++) {
+                queue.push(0)
+            }
+
+            cents_threshold = cents_threshold_input.value
+
+        }
+
+        function restart() {
+            stop()
+
+            start()
+        }
+
         function start() {
+
+            set_config()
+
             if (first_time) {
+                audioCtx = new(window.AudioContext || window.webkitAudioContext)();
+                analyser = audioCtx.createAnalyser();
                 first_time = false
                 init()
             }
+
+            analyser.fftSize = fftsize_input.value
+            fft_array = new Float32Array(analyser.fftSize)
+
             note_el.innerText = ""
             running = true
-            ctx.clearRect(0, 0, canvas_width, canvas_height)
             draw_staff()
-           
+
             requestAnimationFrame(frame_callback)
         }
 
@@ -134,6 +157,8 @@
                 requestAnimationFrame(frame_callback)
                 return
             }
+
+
 
             //get_loudest_freq()
             analyser.getFloatTimeDomainData(fft_array);
@@ -160,13 +185,14 @@
                     note_el.innerText = JSON.stringify(note)
 
                     if (note.letter != prev_note) {
+                        console.log(note.letter)
                         col_number++
-                        
+
                         prev_note = note.letter
-                    } 
+                    }
                     draw_note(note)
                 }
-                    
+
             }
 
             //draw(notes)
@@ -179,82 +205,82 @@
         var col_number = 1
         const line_height = 8
         const staff_spacing = 40
-        const col_spacing = 20
-          
+        const col_spacing = 34
+
         const letter_array = ["C", "D", "E", "F", "G", "A", "B"]
+
         function draw_note(note) {
-            
+
             //var x = col_spacing * col_number
-            var x = 40 * col_number
-            if (x > (canvas_width - 20)) {
+            var x = col_spacing * col_number
+            if (x > (canvas_width - (2 * col_spacing))) {
                 staff_number++
+                if (staff_number > number_of_staffs) {
+                    draw_staff()
+                }
                 col_number = 1
-                x = 40 * col_number
+                x = col_spacing * col_number
             }
 
-      
+
             var just_letter
-            var accidental 
-            var octave 
-            
+            var accidental
+            var octave
+
             just_letter = note.letter.charAt(0)
-            
+
             if (note.letter.length == 2) {
                 // like A4
                 accidental = ""
                 octave = parseInt(note.letter.charAt(1))
-            }
-            else {
+            } else {
                 // like A#4
                 accidental = note.letter.charAt(1)
                 octave = parseInt(note.letter.charAt(2))
             }
-            
-   
-            if (octave > 5) {
-                console.log(note)
-            }
 
-            if (octave < 4) {
-                console.log(note)
-            }
+            // if (octave > 5) {
+            //     console.log(note)
+            // }
+
+            // if (octave < 4) {
+            //     console.log(note)
+            // }
 
             var offset_from_c = letter_array.indexOf(just_letter)
             var offset_from_octave_4 = octave - 4
-            
+
             var y = .5
 
-            y += line_height/2 // because the ellipse x y is the center
+            y += line_height / 2 // because the ellipse x y is the center
             y += staff_number * staff_spacing
-            y += staff_number * (5.5 * line_height) 
-            y -= (staff_number - 1) * (line_height/2) // this fixes an error, but I'm not sure why
+            y += staff_number * (5.5 * line_height)
+            y -= (staff_number - 1) * (line_height / 2) // this fixes an error, but I'm not sure why
             y -= offset_from_octave_4 * (3.5 * line_height)
             y -= offset_from_c * (line_height / 2)
-         
-            
+
+
             ctx.beginPath();
             ctx.ellipse(x, y, (line_height * 1.1), (line_height / 2.2), 0, 0, 2 * Math.PI); //, 2 * Math.PI);
-            const cents_threshold = 12
             if (note.cents > cents_threshold) {
                 ctx.fillStyle = "red"
-            } 
-            else if (Math.abs(note.cents) > cents_threshold) {
+            } else if (Math.abs(note.cents) > cents_threshold) {
                 ctx.fillStyle = "blue"
-            }
-            else {
+            } else {
                 ctx.fillStyle = "black"
             }
-           
+
             ctx.fill();
         }
 
         function draw_staff() {
-            
+
+            ctx.clearRect(0, 0, canvas_width, canvas_height)
             ctx.lineWidth = 1
             var y = .5 // for crisp lines https://usefulangle.com/post/17/html5-canvas-drawing-1px-crisp-straight-lines
             //ctx.strokeStyle = "#FF0000";
 
-            for (var row = 1; row < 5; row++) {
+            for (var row = 1; row < number_of_staffs+1; row++) {
                 y += staff_spacing
                 for (var line = 0; line < 5; line++) {
                     y += line_height
@@ -263,7 +289,7 @@
                     ctx.lineTo(canvas_width, y)
                     ctx.stroke()
                 }
-            }    
+            }
 
             staff_number = 1
             col_number = 1
@@ -399,12 +425,12 @@
         const PLUS = 1;
         const r = Math.pow(2.0, 1.0 / 12.0);
         const cent = Math.pow(2.0, 1.0 / 1200.0);
-        
+
         // from https://newt.phys.unsw.edu.au/music/note/
         function frequency_to_note(input) {
-          //  if ((input < 27.5) || (input > 14080))
-          if ((input < 100) || (input > 1600))
-             return null
+            //  if ((input < 27.5) || (input > 14080))
+            if ((input < 100) || (input > 1600))
+                return null
 
             var frequency;
             var r_index = 0;
@@ -462,7 +488,6 @@
                 letter: letter,
                 cents: side * cent_index,
                 freq: input,
-                index: A4_INDEX + r_index
             }
         }
 
@@ -492,8 +517,22 @@
 <body onload="on_load()">
 
     <div><button onclick="start()">start</button><button onclick="stop()">stop</button></div>
-    <div><canvas id="my_canvas" width=800 height=400></canvas></div>
-    <div id="note"></div>
+    <div id="note_el"></div>
+
+    <div>cents threshold (4 to 20) - bigger is more forgiving
+        <input id="cents_threshold_input" onchange="restart()" value="12"></input>
+    </div>
+
+    <div>steady factor (2 to 40) - bigger is more accurate but laggier
+        <input id="steady_factor_input" onchange="restart()" value="12"></input>
+    </div>
+
+    <div>fftSize - 2048, 4096, 8192, 16384, 32768 - bigger is more accurate but laggier
+        <input id="fftsize_input" onchange="restart()" value="4096"></input>
+    </div>
+
+    <div><canvas id="canvas_el" width=800 height=400></canvas></div>
+
 </body>
 
 </html>
