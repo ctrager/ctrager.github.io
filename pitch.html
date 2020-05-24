@@ -1,9 +1,28 @@
+<!DOCTYPE html>
 <html>
-
 <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
-    <title>click</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
 
+    <title>Corey's Pitch Dectection</title>
+
+    <style>
+        #my_canvas {
+            background-color: lightgoldenrodyellow;
+            border: 1px solid gray;
+            xwidth: 800px;
+            xheight: 400px;
+        }
+        body {
+            font-family: verdana, arial;
+            font-size: 12px;
+            margin: 20px;
+        }
+
+        button {
+            font-size: 16px;
+        }
+    </style>
+    
     <script type="text/javascript">
         var audioCtx
         var analyser
@@ -34,21 +53,38 @@
         const yin_threshold = 0.1
         const yin_probabilityThreshold = 0.1
   
-        function init() {
+        // canvas
+        var ctx
+        const canvas_width = 800
+        const canvas_height = 400
+        var staff_number = 1
+        var col_number = 1
+        const line_height = 8
+        const staff_spacing = 40
+        const col_spacing = 20
+  
+
+        function on_load() {
+
+            note_el = document.getElementById("note")
+            notes_el = document.getElementById("notes")
+            canvas_el = document.getElementById("my_canvas")
+            ctx = canvas_el.getContext("2d");
+
+            draw_staff()
 
             // init the queue
             for (var i = 0; i < queue_length; i++) {
                 queue.push(0)
             }
 
-            note_el = document.getElementById("note")
-            notes_el = document.getElementById("notes")
-            canvas_el = document.getElementById("my_canvas")
+        }
+
+        function init() {
 
             audioCtx = new(window.AudioContext || window.webkitAudioContext)();
             analyser = audioCtx.createAnalyser();
-            // 2048, 4096, 8192, 16384, and 32768
-            analyser.fftSize = 4096
+            analyser.fftSize = fftSize
             fft_array = new Float32Array(analyser.fftSize)
   
             navigator.mediaDevices.getUserMedia(user_media_constraints)
@@ -72,11 +108,13 @@
             note_el.innerText = ""
             notes_el.innerText = ""
             running = true
+           
             requestAnimationFrame(frame_callback)
         }
 
         function stop() {
             running = false
+            ctx.clearRect(canvas_width, canvas_height)
         }
 
         function frame_callback() {
@@ -114,19 +152,61 @@
                 // update array of notes
                 if (notes.length == 0) {
                     notes.push(note)
+                    col_number++
+                    draw_note(note)
                 } else {
                     last_note = notes[notes.length - 1]
                     if (note.letter == last_note.letter) {
                         last_note.cents = note.cents
+                        
+                        draw_note(note)
                     } else {
                         notes.push(note)
+                        col_number++
+                        draw_note(note)
                     }
                 }
                 notes_el.innerText = JSON.stringify(notes, null, 2)
             }
 
+            //draw(notes)
             requestAnimationFrame(frame_callback)
+        }
+        
+        function draw_note(note) {
+            //var x = col_spacing * col_number
+            var x = 40 * col_number
+            if (x > (canvas_width - 20)) {
+                staff_number++
+                col_number = 1
+                x = 40 * col_number
+            }
 
+            var y = .5
+            y += staff_spacing * staff_number
+       
+            ctx.fillStyle = "red"
+            ctx.beginPath();
+            ctx.ellipse(x, y, (line_height/2) + 2, (line_height/2), 0, 0, 2 * Math.PI); //, 2 * Math.PI);
+            ctx.fill();
+        }
+
+        function draw_staff() {
+            
+            ctx.lineWidth = 1
+            var y = .5 // for crisp lines https://usefulangle.com/post/17/html5-canvas-drawing-1px-crisp-straight-lines
+            //ctx.strokeStyle = "#FF0000";
+
+            for (var row = 1; row < 5; row++) {
+                y += staff_spacing
+                for (var line = 0; line < 5; line++) {
+                    y += line_height
+                    ctx.beginPath()
+                    ctx.moveTo(0, y)
+                    ctx.lineTo(canvas_width, y)
+                    ctx.stroke()
+                }
+            }    
         }
 
         // from https://github.com/peterkhayes/pitchfinder/blob/master/src/detectors/yin.ts
@@ -347,10 +427,10 @@
     </script>
 </head>
 
-<body>
+<body onload="on_load()">
 
     <div><button onclick="start()">start</button><button onclick="stop()">stop</button></div>
-    <div><canvas id="my_canvas"></canvas></div>
+    <div><canvas id="my_canvas" width=800 height=400></canvas></div>
     <div id="note"></div>
     <div id="notes"></div>
 </body>
