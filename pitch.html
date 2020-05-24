@@ -66,6 +66,7 @@
             cents_threshold_input = document.getElementById("cents_threshold_input")
             steady_factor_input = document.getElementById("steady_factor_input")
             fftsize_input = document.getElementById("fftsize_input")
+            transpose_octave_input = document.getElementById("transpose_octave_input")
 
             canvas_el = document.getElementById("canvas_el")
             ctx = canvas_el.getContext("2d");
@@ -239,6 +240,8 @@
                 octave = parseInt(note.letter.charAt(2))
             }
 
+            octave += parseInt(transpose_octave_input.value)
+            
             // if (octave > 5) {
             //     console.log(note)
             // }
@@ -529,6 +532,10 @@
 
     <div>fftSize - 2048, 4096, 8192, 16384, 32768 - bigger is more accurate but laggier
         <input id="fftsize_input" onchange="restart()" value="4096"></input>
+    </div>
+
+    <div>transpose octave - 0, 1, -1
+        <input id="transpose_octave_input" onchange="restart()" value="0"></input>
     </div>
 
     <div><canvas id="canvas_el" width=800 height=400></canvas></div>
