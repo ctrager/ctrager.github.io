@@ -76,7 +76,7 @@
             //test
             set_config()
             var f = 440
-            for (var i = 0; i < 50; i++) {
+            for (var i = 0; i < 70; i++) {
 
                 col_number++
                 draw_note(frequency_to_note(f))
@@ -84,7 +84,7 @@
             }
 
             f = 440
-            for (var i = 0; i < 30; i++) {
+            for (var i = 0; i < 50; i++) {
 
                 col_number++
                 draw_note(frequency_to_note(f))
@@ -206,11 +206,16 @@
         var col_number = 1
         const line_height = 8
         const staff_spacing = 40
-        const col_spacing = 34
+        const col_spacing = 25 // 34 is prettier
+
+        const ledger_line_half_length = 10
+
 
         const letter_array = ["C", "D", "E", "F", "G", "A", "B"]
 
         function draw_note(note) {
+
+            if (!note) return
 
             //var x = col_spacing * col_number
             var x = col_spacing * col_number
@@ -258,13 +263,21 @@
             y += line_height / 2 // because the ellipse x y is the center
             y += staff_number * staff_spacing
             y += staff_number * (5.5 * line_height)
+
             y -= (staff_number - 1) * (line_height / 2) // this fixes an error, but I'm not sure why
+
+            var first_low_ledger_line = y
+            var first_high_ledger_line = y - (6 * line_height)
+
+            // top_line_of_staff_y -= 1 * (3.5 * line_height) // first ledger line
+            // top_line_of_staff_y -= 5 * (line_height / 2)  // a is 5 offset from c
+
             y -= offset_from_octave_4 * (3.5 * line_height)
             y -= offset_from_c * (line_height / 2)
 
 
             ctx.beginPath();
-            ctx.ellipse(x, y, (line_height * 1.1), (line_height / 2.2), 0, 0, 2 * Math.PI); //, 2 * Math.PI);
+            ctx.ellipse(x, y, (line_height * 0.8), (line_height * 0.45), 0, 0, 2 * Math.PI); //, 2 * Math.PI);
             if (note.cents > cents_threshold) {
                 ctx.fillStyle = "red"
             } else if (Math.abs(note.cents) > cents_threshold) {
@@ -274,6 +287,64 @@
             }
 
             ctx.fill();
+
+            // ledger lines
+
+            const A5_INDEX = note_letters.indexOf("A5")
+            const C6_INDEX = note_letters.indexOf("C6")
+            const E6_INDEX = note_letters.indexOf("E6")
+            const G6_INDEX = note_letters.indexOf("G6")
+
+            const C4_INDEX = note_letters.indexOf("C#4")
+            const A3_INDEX = note_letters.indexOf("A#3")
+            const F_INDEX = note_letters.indexOf("F3")
+
+
+
+            var this_index = note_letters.indexOf(note.letter)
+
+            if (this_index >= A5_INDEX) {
+                y = first_high_ledger_line
+                draw_ledger_line(x, y)
+
+                if (this_index >= C6_INDEX) {
+                    y -= line_height
+                    draw_ledger_line(x, y)
+
+                    if (this_index >= E6_INDEX) {
+                        y -= line_height
+                        draw_ledger_line(x, y)
+
+                        if (this_index >= G6_INDEX) {
+                            y -= line_height
+                            draw_ledger_line(x, y)
+                        }
+                    }
+
+                }
+            } else if (this_index <= C4_INDEX) {
+                console.log(offset_from_c, note)
+
+                y = first_low_ledger_line
+                draw_ledger_line(x, y)
+
+                if (this_index <= A3_INDEX) {
+                    y += line_height
+                    draw_ledger_line(x, y)
+
+                    if (this_index <= F_INDEX) {
+                        y += line_height
+                        draw_ledger_line(x, y)
+                    }
+                }
+            }
+        }
+
+        function draw_ledger_line(x, y) {
+            ctx.beginPath()
+            ctx.moveTo(x - ledger_line_half_length, y)
+            ctx.lineTo(x + ledger_line_half_length, y)
+            ctx.stroke()
         }
 
         function draw_staff() {
@@ -283,7 +354,7 @@
             var y = .5 // for crisp lines https://usefulangle.com/post/17/html5-canvas-drawing-1px-crisp-straight-lines
             //ctx.strokeStyle = "#FF0000";
 
-            for (var row = 1; row < number_of_staffs+1; row++) {
+            for (var row = 1; row < number_of_staffs + 1; row++) {
                 y += staff_spacing
                 for (var line = 0; line < 5; line++) {
                     y += line_height
@@ -432,7 +503,7 @@
         // from https://newt.phys.unsw.edu.au/music/note/
         function frequency_to_note(input) {
             //  if ((input < 27.5) || (input > 14080))
-            if ((input < 100) || (input > 1600))
+            if ((input < 160) || (input > 2000))
                 return null
 
             var frequency;
