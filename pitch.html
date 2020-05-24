@@ -41,13 +41,12 @@
 
         var queue = []
         var note_el
-        var notes_el
         var canvas_el
-        var notes = []
+        var prev_note = ""
 
         // important constants to tune
-        const queue_length = 20
-        const fftSize = 4096 // 2048, 4096, 8192, 16384, 32768
+        const queue_length = 12
+        const fftSize = 8192 // 2048, 4096, 8192, 16384, 32768
     
         // get_freq_via_yin constants
         const yin_threshold = 0.1
@@ -55,23 +54,34 @@
   
         // canvas
         var ctx
-        const canvas_width = 800
-        const canvas_height = 400
-        var staff_number = 1
-        var col_number = 1
-        const line_height = 8
-        const staff_spacing = 40
-        const col_spacing = 20
-  
+    
 
         function on_load() {
 
             note_el = document.getElementById("note")
-            notes_el = document.getElementById("notes")
             canvas_el = document.getElementById("my_canvas")
             ctx = canvas_el.getContext("2d");
 
             draw_staff()
+
+            //test
+            var f = 440
+            for (var i = 0; i < 50; i++) {
+               
+                col_number++
+                draw_note(frequency_to_note(f))
+                f *= 1.02
+            }
+            
+            f = 440
+            for (var i = 0; i < 30; i++) {
+               
+                col_number++
+                draw_note(frequency_to_note(f))
+                f *= .97
+            }
+
+
 
             // init the queue
             for (var i = 0; i < queue_length; i++) {
@@ -104,17 +114,16 @@
                 first_time = false
                 init()
             }
-            notes = []
             note_el.innerText = ""
-            notes_el.innerText = ""
             running = true
+            ctx.clearRect(0, 0, canvas_width, canvas_height)
+            draw_staff()
            
             requestAnimationFrame(frame_callback)
         }
 
         function stop() {
             running = false
-            ctx.clearRect(canvas_width, canvas_height)
         }
 
         function frame_callback() {
@@ -147,33 +156,34 @@
                 let mode = get_mode(queue)
 
                 let note = frequency_to_note(mode)
-                note_el.innerText = JSON.stringify(note)
+                if (note) {
+                    note_el.innerText = JSON.stringify(note)
 
-                // update array of notes
-                if (notes.length == 0) {
-                    notes.push(note)
-                    col_number++
-                    draw_note(note)
-                } else {
-                    last_note = notes[notes.length - 1]
-                    if (note.letter == last_note.letter) {
-                        last_note.cents = note.cents
-                        
-                        draw_note(note)
-                    } else {
-                        notes.push(note)
+                    if (note.letter != prev_note) {
                         col_number++
-                        draw_note(note)
-                    }
+                        
+                        prev_note = note.letter
+                    } 
+                    draw_note(note)
                 }
-                notes_el.innerText = JSON.stringify(notes, null, 2)
+                    
             }
 
             //draw(notes)
             requestAnimationFrame(frame_callback)
         }
-        
+
+        const canvas_width = 800
+        const canvas_height = 400
+        var staff_number = 1
+        var col_number = 1
+        const line_height = 8
+        const staff_spacing = 40
+        const col_spacing = 20
+          
+        const letter_array = ["C", "D", "E", "F", "G", "A", "B"]
         function draw_note(note) {
+            
             //var x = col_spacing * col_number
             var x = 40 * col_number
             if (x > (canvas_width - 20)) {
@@ -182,12 +192,59 @@
                 x = 40 * col_number
             }
 
+      
+            var just_letter
+            var accidental 
+            var octave 
+            
+            just_letter = note.letter.charAt(0)
+            
+            if (note.letter.length == 2) {
+                // like A4
+                accidental = ""
+                octave = parseInt(note.letter.charAt(1))
+            }
+            else {
+                // like A#4
+                accidental = note.letter.charAt(1)
+                octave = parseInt(note.letter.charAt(2))
+            }
+            
+   
+            if (octave > 5) {
+                console.log(note)
+            }
+
+            if (octave < 4) {
+                console.log(note)
+            }
+
+            var offset_from_c = letter_array.indexOf(just_letter)
+            var offset_from_octave_4 = octave - 4
+            
             var y = .5
-            y += staff_spacing * staff_number
-       
-            ctx.fillStyle = "red"
+
+            y += line_height/2 // because the ellipse x y is the center
+            y += staff_number * staff_spacing
+            y += staff_number * (5.5 * line_height) 
+            y -= (staff_number - 1) * (line_height/2) // this fixes an error, but I'm not sure why
+            y -= offset_from_octave_4 * (3.5 * line_height)
+            y -= offset_from_c * (line_height / 2)
+         
+            
             ctx.beginPath();
-            ctx.ellipse(x, y, (line_height/2) + 2, (line_height/2), 0, 0, 2 * Math.PI); //, 2 * Math.PI);
+            ctx.ellipse(x, y, (line_height * 1.1), (line_height / 2.2), 0, 0, 2 * Math.PI); //, 2 * Math.PI);
+            const cents_threshold = 12
+            if (note.cents > cents_threshold) {
+                ctx.fillStyle = "red"
+            } 
+            else if (Math.abs(note.cents) > cents_threshold) {
+                ctx.fillStyle = "blue"
+            }
+            else {
+                ctx.fillStyle = "black"
+            }
+           
             ctx.fill();
         }
 
@@ -207,6 +264,9 @@
                     ctx.stroke()
                 }
             }    
+
+            staff_number = 1
+            col_number = 1
         }
 
         // from https://github.com/peterkhayes/pitchfinder/blob/master/src/detectors/yin.ts
@@ -342,8 +402,9 @@
         
         // from https://newt.phys.unsw.edu.au/music/note/
         function frequency_to_note(input) {
-            if ((input < 27.5) || (input > 14080))
-                return ""
+          //  if ((input < 27.5) || (input > 14080))
+          if ((input < 100) || (input > 1600))
+             return null
 
             var frequency;
             var r_index = 0;
@@ -400,7 +461,8 @@
             return {
                 letter: letter,
                 cents: side * cent_index,
-                freq: input
+                freq: input,
+                index: A4_INDEX + r_index
             }
         }
 
@@ -432,7 +494,6 @@
     <div><button onclick="start()">start</button><button onclick="stop()">stop</button></div>
     <div><canvas id="my_canvas" width=800 height=400></canvas></div>
     <div id="note"></div>
-    <div id="notes"></div>
 </body>
 
 </html>
