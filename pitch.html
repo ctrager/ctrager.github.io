@@ -76,17 +76,17 @@
             //test
             set_config()
             var f = 440
-            for (var i = 0; i < 70; i++) {
+            for (var i = 0; i < 30; i++) {
 
-                col_number++
+                current_x += note_spacing
                 draw_note(frequency_to_note(f))
                 f *= 1.02
             }
 
             f = 440
-            for (var i = 0; i < 50; i++) {
+            for (var i = 0; i < 30; i++) {
 
-                col_number++
+                current_x += note_spacing
                 draw_note(frequency_to_note(f))
                 f *= .97
             }
@@ -187,7 +187,7 @@
 
                     if (note.letter != prev_note) {
                         console.log(note.letter)
-                        col_number++
+                        current_x += note_spacing
 
                         prev_note = note.letter
                     }
@@ -203,29 +203,29 @@
         const canvas_width = 800
         const canvas_height = 400
         var staff_number = 1
-        var col_number = 1
+        
         const line_height = 8
         const staff_spacing = 40
-        const col_spacing = 25 // 34 is prettier
+        const note_spacing = 25 // 34 is prettier
 
         const ledger_line_half_length = 10
 
 
         const letter_array = ["C", "D", "E", "F", "G", "A", "B"]
 
+        var current_x = note_spacing
+
+
         function draw_note(note) {
 
             if (!note) return
 
-            //var x = col_spacing * col_number
-            var x = col_spacing * col_number
-            if (x > (canvas_width - (2 * col_spacing))) {
+            if (current_x > (canvas_width - (2 * note_spacing))) {
                 staff_number++
                 if (staff_number > number_of_staffs) {
                     draw_staff()
                 }
-                col_number = 1
-                x = col_spacing * col_number
+                current_x = note_spacing
             }
 
 
@@ -275,9 +275,7 @@
             y -= offset_from_octave_4 * (3.5 * line_height)
             y -= offset_from_c * (line_height / 2)
 
-
-            ctx.beginPath();
-            ctx.ellipse(x, y, (line_height * 0.8), (line_height * 0.45), 0, 0, 2 * Math.PI); //, 2 * Math.PI);
+    
             if (note.cents > cents_threshold) {
                 ctx.fillStyle = "red"
             } else if (Math.abs(note.cents) > cents_threshold) {
@@ -286,7 +284,43 @@
                 ctx.fillStyle = "black"
             }
 
+            // // draw the accidental
+            const sharp_line_length = 10
+            const sharp_horz_tilt = 2
+            var nudge = line_height / 3
+
+            if (accidental == '#') {
+                 ctx.beginPath();
+                 var sharp_y = y - line_height/3
+                 ctx.moveTo(current_x , sharp_y + sharp_horz_tilt)
+                 ctx.lineTo(current_x + sharp_line_length, sharp_y - sharp_horz_tilt)
+   
+                 var sharp_y = y + line_height/3
+
+                 ctx.moveTo(current_x , sharp_y + sharp_horz_tilt)
+                 ctx.lineTo(current_x + sharp_line_length, sharp_y - sharp_horz_tilt)
+  
+                 ctx.moveTo(current_x + 2, y - (line_height/2) - 1 )
+                 ctx.lineTo(current_x + 2, y + (line_height/2) + 1)
+   
+                 ctx.moveTo(current_x + 6, y - (line_height/2) - 1 )
+                 ctx.lineTo(current_x + 6, y + (line_height/2) + 1 )
+   
+
+                 ctx.stroke();
+                 current_x += sharp_line_length * 2
+            }
+    
+            // draw the note itself
+            ctx.beginPath();
+            ctx.ellipse(current_x, y, (line_height * 0.8), (line_height * 0.45), 0, 0, 2 * Math.PI); //, 2 * Math.PI);
             ctx.fill();
+
+            // draw the accidental
+            if (accidental == '#') {
+                ctx.beginPath();
+                ctx.stroke();
+            }
 
             // ledger lines
 
@@ -305,19 +339,19 @@
 
             if (this_index >= A5_INDEX) {
                 y = first_high_ledger_line
-                draw_ledger_line(x, y)
+                draw_ledger_line(current_x, y)
 
                 if (this_index >= C6_INDEX) {
                     y -= line_height
-                    draw_ledger_line(x, y)
+                    draw_ledger_line(current_x, y)
 
                     if (this_index >= E6_INDEX) {
                         y -= line_height
-                        draw_ledger_line(x, y)
+                        draw_ledger_line(current_x, y)
 
                         if (this_index >= G6_INDEX) {
                             y -= line_height
-                            draw_ledger_line(x, y)
+                            draw_ledger_line(current_x, y)
                         }
                     }
 
@@ -326,15 +360,15 @@
                 console.log(offset_from_c, note)
 
                 y = first_low_ledger_line
-                draw_ledger_line(x, y)
+                draw_ledger_line(current_x, y)
 
                 if (this_index <= A3_INDEX) {
                     y += line_height
-                    draw_ledger_line(x, y)
+                    draw_ledger_line(current_x, y)
 
                     if (this_index <= F_INDEX) {
                         y += line_height
-                        draw_ledger_line(x, y)
+                        draw_ledger_line(current_x, y)
                     }
                 }
             }
@@ -366,7 +400,7 @@
             }
 
             staff_number = 1
-            col_number = 1
+            current_x
         }
 
         // from https://github.com/peterkhayes/pitchfinder/blob/master/src/detectors/yin.ts
