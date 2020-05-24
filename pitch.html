@@ -31,12 +31,14 @@
 
         var queue = []
         var queue_length = 20
-        var freq_el
-        var most_common_freq_el
+        var note_el
+        var notes_el
         var offset_el
         var threshold = 0.1
         var probabilityThreshold = 0.1
         var fftSize = 4096 // 2048, 4096, 8192, 16384, 32768
+        var notes = []
+
 
         function init() {
 
@@ -45,7 +47,9 @@
                 queue.push(0)
             }
 
-            freq_el = document.getElementById("freq")
+            note_el = document.getElementById("note")
+            notes_el = document.getElementById("notes")
+
 
             audioCtx = new(window.AudioContext || window.webkitAudioContext)();
             analyser = audioCtx.createAnalyser();
@@ -72,6 +76,9 @@
                 first_time = false
                 init()
             }
+            notes = []
+            note_el.innerText = ""
+            notes_el.innerText = ""
             running = true
             requestAnimationFrame(frame_callback)
         }
@@ -109,8 +116,23 @@
                 queue.push(freq.toFixed(1))
 
                 let mode = get_mode(queue)
-                let note = frequency_to_note(freq)
-                freq_el.innerText = mode + ", " + note
+                let note = frequency_to_note(mode)
+                note_el.innerText = JSON.stringify(note)
+
+                if (notes.length == 0) {
+                    notes.push(note)
+                }
+                else {
+                    last_note = notes[notes.length-1]
+                    if (note.letter == last_note.letter) {
+                        last_note.plus_minus = note.plus_minus
+                        last_note.cents = note.cents
+                    }
+                    else {
+                        notes.push(note)
+                    }
+                }
+                notes_el.innerText = JSON.stringify(notes, null, 2)
             }
 
             requestAnimationFrame(frame_callback)
@@ -304,13 +326,12 @@ frequency_to_note
                 }
             }
 
-            var result = notes[A4_INDEX + r_index];
-            if (side == PLUS)
-                result = result + " plus ";
-            else
-                result = result + " minus ";
-            result = result + cent_index + " cents";
-            return result;
+            var letter = notes[A4_INDEX + r_index];
+            return {
+                letter: letter, 
+                plus_minus: side, 
+                cents: cent_index
+            }
         }
 
         function get_mode(array) {
@@ -339,8 +360,8 @@ frequency_to_note
 
     <div><button onclick="start()">start</button></div>
     <div><button onclick="stop()">stop</button></div>
-    <div id="freq">0</div>
-
+    <div id="note"></div>
+    <div id="notes"></div>
 </body>
 
 </html>
