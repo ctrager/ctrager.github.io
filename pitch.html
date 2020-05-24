@@ -7,36 +7,29 @@
     <script type="text/javascript">
         var audioCtx
         var analyser
-        var stream
-        var source
-        var track
-
-        var something
-
-        var constraints = {
+        var media_stream_source
+  
+        var user_media_constraints = {
             audio: true,
             video: false
         };
 
-        var my_stream
-
-        var freq_array
         var fft_array
-        var freq_interval
-        var half_fft_array_size
-
+       
         var running = false
         var ready = false
         var first_time = true
 
         var queue = []
-        var queue_length = 20
         var note_el
         var notes_el
-        var offset_el
-        var fftSize = 4096 // 2048, 4096, 8192, 16384, 32768
+        var canvas_el
         var notes = []
 
+        // important constants to tune
+        const queue_length = 20
+        const fftSize = 4096 // 2048, 4096, 8192, 16384, 32768
+    
         // get_freq_via_yin constants
         const yin_threshold = 0.1
         const yin_probabilityThreshold = 0.1
@@ -50,20 +43,18 @@
 
             note_el = document.getElementById("note")
             notes_el = document.getElementById("notes")
-
+            canvas_el = document.getElementById("my_canvas")
 
             audioCtx = new(window.AudioContext || window.webkitAudioContext)();
             analyser = audioCtx.createAnalyser();
             // 2048, 4096, 8192, 16384, and 32768
             analyser.fftSize = 4096
             fft_array = new Float32Array(analyser.fftSize)
-            half_fft_array_size = fft_array.length / 2
-
-            navigator.mediaDevices.getUserMedia(constraints)
+  
+            navigator.mediaDevices.getUserMedia(user_media_constraints)
                 .then(function (stream) {
-                    my_stream = stream
-                    source = audioCtx.createMediaStreamSource(my_stream);
-                    source.connect(analyser);
+                    media_stream_source = audioCtx.createMediaStreamSource(stream);
+                    media_stream_source.connect(analyser);
                     ready = true
                     console.log("ready")
                 })
@@ -86,8 +77,6 @@
 
         function stop() {
             running = false
-            console.log("sample rate", audioCtx.sampleRate)
-            console.log("fftSize", analyser.fftSize)
         }
 
         function frame_callback() {
@@ -113,13 +102,16 @@
             }
 
             if (freq) {
+
+                // Corey's hack. Save the last N frequencies and then pick the most common of the last N
                 queue.shift()
                 queue.push(freq.toFixed(1))
-
                 let mode = get_mode(queue)
+
                 let note = frequency_to_note(mode)
                 note_el.innerText = JSON.stringify(note)
 
+                // update array of notes
                 if (notes.length == 0) {
                     notes.push(note)
                 } else {
@@ -140,12 +132,10 @@
         // from https://github.com/peterkhayes/pitchfinder/blob/master/src/detectors/yin.ts
         function get_freq_via_yin(fft_array, threshold, probabilityThreshold) {
 
-
             // Set buffer size to the highest power of two below the provided buffer's length.
             let bufferSize;
             for (bufferSize = 1; bufferSize < fft_array.length; bufferSize *= 2);
             bufferSize /= 2;
-
 
             // Set up the yinBuffer as described in step one of the YIN paper.
             const yinBufferLength = bufferSize / 2;
@@ -359,8 +349,8 @@
 
 <body>
 
-    <div><button onclick="start()">start</button></div>
-    <div><button onclick="stop()">stop</button></div>
+    <div><button onclick="start()">start</button><button onclick="stop()">stop</button></div>
+    <div><canvas id="my_canvas"></canvas></div>
     <div id="note"></div>
     <div id="notes"></div>
 </body>
