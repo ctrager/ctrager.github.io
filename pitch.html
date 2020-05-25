@@ -47,7 +47,7 @@
         var canvas_el
 
         var number_of_staffs = 4
-        var prev_note = ""
+        var prev_note = {letter: "", cents: 0, freq: 0}
         var cents_threshold
         var queue_length
         var fftSize // 2048, 4096, 8192, 16384, 32768
@@ -73,20 +73,16 @@
 
             draw_staff()
 
-            //test
+            //test, initial display
             set_config()
             var f = 440
-            for (var i = 0; i < 30; i++) {
-
-                current_x += note_spacing
+            for (var i = 0; i < 55; i++) {
                 draw_note(frequency_to_note(f))
                 f *= 1.02
             }
 
             f = 440
-            for (var i = 0; i < 30; i++) {
-
-                current_x += note_spacing
+            for (var i = 0; i < 25; i++) {
                 draw_note(frequency_to_note(f))
                 f *= .97
             }
@@ -176,21 +172,15 @@
 
             if (freq) {
 
-                // Corey's hack. Save the last N frequencies and then pick the most common of the last N
+                // For steadier pitch detection, save the last N frequencies and then pick the most common of the last N
                 queue.shift()
                 queue.push(freq.toFixed(1))
-                let mode = get_mode(queue)
 
-                let note = frequency_to_note(mode)
+                let most_common_recent_frequency = get_mode(queue)
+
+                let note = frequency_to_note(most_common_recent_frequency)
                 if (note) {
                     note_el.innerText = JSON.stringify(note)
-
-                    if (note.letter != prev_note) {
-                        console.log(note.letter)
-                        current_x += note_spacing
-
-                        prev_note = note.letter
-                    }
                     draw_note(note)
                 }
 
@@ -213,13 +203,28 @@
 
         const letter_array = ["C", "D", "E", "F", "G", "A", "B"]
 
-        var current_x = note_spacing
-
+        var current_x = 0
+        const sharp_line_length = 10
+         
 
         function draw_note(note) {
 
             if (!note) return
 
+            if (note.freq == prev_note.freq) {
+                return
+            }
+
+            // if it's the same note, we'll just redraw with a different color
+            // so don't advance x, but if it is a different note, then advance
+            if (note.letter != prev_note.letter) {
+                current_x += note_spacing
+                if (prev_note.accidental == '#') {
+                   current_x += sharp_line_length * 2
+                }
+            }
+
+            // are we at the end of this staff?
             if (current_x > (canvas_width - (2 * note_spacing))) {
                 staff_number++
                 if (staff_number > number_of_staffs) {
@@ -228,35 +233,23 @@
                 current_x = note_spacing
             }
 
-
-            var just_letter
-            var accidental
-            var octave
-
-            just_letter = note.letter.charAt(0)
+            // enhance the note object
+            note.just_letter = note.letter.charAt(0)
 
             if (note.letter.length == 2) {
                 // like A4
-                accidental = ""
-                octave = parseInt(note.letter.charAt(1))
+                note.accidental = ""
+                note.octave = parseInt(note.letter.charAt(1))
             } else {
                 // like A#4
-                accidental = note.letter.charAt(1)
-                octave = parseInt(note.letter.charAt(2))
+                note.accidental = note.letter.charAt(1)
+                note.octave = parseInt(note.letter.charAt(2))
             }
 
-            octave += parseInt(transpose_octave_input.value)
+            var transposed_octave = note.octave += parseInt(transpose_octave_input.value)
 
-            // if (octave > 5) {
-            //     console.log(note)
-            // }
-
-            // if (octave < 4) {
-            //     console.log(note)
-            // }
-
-            var offset_from_c = letter_array.indexOf(just_letter)
-            var offset_from_octave_4 = octave - 4
+            var offset_from_c = letter_array.indexOf(note.just_letter)
+            var offset_from_octave_4 = transposed_octave - 4
 
             var y = .5
 
@@ -285,11 +278,12 @@
             }
 
             // // draw the accidental
-            const sharp_line_length = 10
-            const sharp_horz_tilt = 2
+           const sharp_horz_tilt = 2
             var nudge = line_height / 3
 
-            if (false) { //accidental == '#') {
+            var note_x = current_x
+
+            if (note.accidental == '#' && true ) {
                  ctx.beginPath();
                  var sharp_y = y - line_height/3
                  ctx.moveTo(current_x , sharp_y + sharp_horz_tilt)
@@ -308,12 +302,12 @@
    
 
                  ctx.stroke();
-                 current_x += sharp_line_length * 2
+                 note_x += sharp_line_length * 2
             }
     
             // draw the note itself
             ctx.beginPath();
-            ctx.ellipse(current_x, y, (line_height * 0.8), (line_height * 0.45), 0, 0, 2 * Math.PI); //, 2 * Math.PI);
+            ctx.ellipse(note_x, y, (line_height * 0.8), (line_height * 0.45), 0, 0, 2 * Math.PI); //, 2 * Math.PI);
             ctx.fill();
 
             // ledger lines
@@ -327,25 +321,23 @@
             const A3_INDEX = note_letters.indexOf("A#3")
             const F_INDEX = note_letters.indexOf("F3")
 
-
-
             var this_index = note_letters.indexOf(note.letter)
 
             if (this_index >= A5_INDEX) {
                 y = first_high_ledger_line
-                draw_ledger_line(current_x, y)
+                draw_ledger_line(note_x, y)
 
                 if (this_index >= C6_INDEX) {
                     y -= line_height
-                    draw_ledger_line(current_x, y)
+                    draw_ledger_line(note_x, y)
 
                     if (this_index >= E6_INDEX) {
                         y -= line_height
-                        draw_ledger_line(current_x, y)
+                        draw_ledger_line(note_x, y)
 
                         if (this_index >= G6_INDEX) {
                             y -= line_height
-                            draw_ledger_line(current_x, y)
+                            draw_ledger_line(note_x, y)
                         }
                     }
 
@@ -354,18 +346,20 @@
                 console.log(offset_from_c, note)
 
                 y = first_low_ledger_line
-                draw_ledger_line(current_x, y)
+                draw_ledger_line(note_x, y)
 
                 if (this_index <= A3_INDEX) {
                     y += line_height
-                    draw_ledger_line(current_x, y)
+                    draw_ledger_line(note_x, y)
 
                     if (this_index <= F_INDEX) {
                         y += line_height
-                        draw_ledger_line(current_x, y)
+                        draw_ledger_line(note_x, y)
                     }
                 }
             }
+
+            prev_note = note
         }
 
         function draw_ledger_line(x, y) {
@@ -374,7 +368,7 @@
             ctx.lineTo(x + ledger_line_half_length, y)
             ctx.stroke()
         }
-
+ 
         function draw_staff() {
 
             ctx.clearRect(0, 0, canvas_width, canvas_height)
@@ -394,8 +388,9 @@
             }
 
             staff_number = 1
-            current_x
+            current_x = 0
         }
+
 
         // from https://github.com/peterkhayes/pitchfinder/blob/master/src/detectors/yin.ts
         function get_freq_via_yin(fft_array, threshold, probabilityThreshold) {
@@ -503,6 +498,7 @@
                 betterTau = tau + (s2 - s0) / (2 * (2 * s1 - s2 - s0));
             }
 
+            // return frequency
             return audioCtx.sampleRate / betterTau;
         }
 
@@ -528,9 +524,11 @@
         const r = Math.pow(2.0, 1.0 / 12.0);
         const cent = Math.pow(2.0, 1.0 / 1200.0);
 
-        // from https://newt.phys.unsw.edu.au/music/note/
+        // Corey says...from https://newt.phys.unsw.edu.au/music/note/, then I tweaked it
         function frequency_to_note(input) {
             //  if ((input < 27.5) || (input > 14080))
+            // low end, guitar E string, high end violin high b on e string
+            // We want to filter out more extreme notes which tend to be noise
             if ((input < 160) || (input > 2000))
                 return null
 
