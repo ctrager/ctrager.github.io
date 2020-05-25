@@ -196,7 +196,7 @@
         
         const line_height = 8
         const staff_spacing = 40
-        const note_spacing = 25 // 34 is prettier
+        const note_spacing = 34 
 
         const ledger_line_half_length = 10
 
@@ -278,27 +278,30 @@
             }
 
             // // draw the accidental
-           const sharp_horz_tilt = 2
+            const sharp_horz_tilt = 2
             var nudge = line_height / 3
 
             var note_x = current_x
+            var acc_x = current_x - 3
+            var note_width = line_height * 0.8
 
             if (note.accidental == '#' && true ) {
+            
                  ctx.beginPath();
                  var sharp_y = y - line_height/3
-                 ctx.moveTo(current_x , sharp_y + sharp_horz_tilt)
-                 ctx.lineTo(current_x + sharp_line_length, sharp_y - sharp_horz_tilt)
+                 ctx.moveTo(acc_x - 2, sharp_y + sharp_horz_tilt)
+                 ctx.lineTo(acc_x + sharp_line_length, sharp_y - sharp_horz_tilt)
    
                  var sharp_y = y + line_height/3
 
-                 ctx.moveTo(current_x , sharp_y + sharp_horz_tilt)
-                 ctx.lineTo(current_x + sharp_line_length, sharp_y - sharp_horz_tilt)
+                 ctx.moveTo(acc_x - 2, sharp_y + sharp_horz_tilt)
+                 ctx.lineTo(acc_x + sharp_line_length, sharp_y - sharp_horz_tilt)
   
-                 ctx.moveTo(current_x + 2, y - (line_height/2) - 1 )
-                 ctx.lineTo(current_x + 2, y + (line_height/2) + 1)
+                 ctx.moveTo(acc_x + 2, y - (line_height/2) - 1 )
+                 ctx.lineTo(acc_x + 2, y + (line_height/2) + 1)
    
-                 ctx.moveTo(current_x + 6, y - (line_height/2) - 1 )
-                 ctx.lineTo(current_x + 6, y + (line_height/2) + 1 )
+                 ctx.moveTo(acc_x + 6, y - (line_height/2) - 1 )
+                 ctx.lineTo(acc_x + 6, y + (line_height/2) + 1 )
    
 
                  ctx.stroke();
@@ -307,7 +310,7 @@
     
             // draw the note itself
             ctx.beginPath();
-            ctx.ellipse(note_x, y, (line_height * 0.8), (line_height * 0.45), 0, 0, 2 * Math.PI); //, 2 * Math.PI);
+            ctx.ellipse(note_x, y, note_width, (line_height * 0.45), 0, 0, 2 * Math.PI); //, 2 * Math.PI);
             ctx.fill();
 
             // ledger lines
@@ -635,6 +638,8 @@
         <input id="transpose_octave_input" onchange="restart()" value="0"></input>
     </div>
 
+    <div style="color: red;">Red == out of tune sharp</div>
+    <div style="color: blue;">Blue == out of tune flat</div>
     <div><canvas id="canvas_el" width=800 height=400></canvas></div>
 
 </body>
