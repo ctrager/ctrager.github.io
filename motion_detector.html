@@ -24,6 +24,7 @@
         var ready = false
         var video_stream
         var capture_canvas_el
+        var best_canvas_el
         var diff_canvas_el
         var diff_canvas_el2
         var diff_canvsa_el3
@@ -35,12 +36,21 @@
         var diff_context
         var diff_context2
         var diff_context3
+        var best_context
 
         var config = {
             width: 400,
             height: 200,
-            downscale: .25
+            downscale: .25,
+            rgb_threshold: 70,
+            pct_of_pixels_threshold: 10,
+            diff_interval_in_milliseconds: 200,
+            best_moment_interval_in_milliseconds: 10 * 1000
         }
+
+        // 400 * 200 = 80,000
+        // 100 * 50 = 5000
+        // 5000 * 4 bytes = 20,000
 
 
         function init_video() {
@@ -77,6 +87,10 @@
             capture_canvas_el.width = config.width
             capture_canvas_el.height = config.height
 
+            best_canvas_el = document.createElement("canvas")
+            best_canvas_el.width = config.width
+            best_canvas_el.height = config.height
+
             diff_canvas_el = document.createElement("canvas")
             diff_canvas_el.width = config.width * config.downscale
             diff_canvas_el.height = config.height * config.downscale
@@ -86,8 +100,8 @@
             diff_canvas_el2.height = config.height * config.downscale
 
             diff_canvas_el3 = document.createElement("canvas")
-            diff_canvas_el3.width = config.width 
-            diff_canvas_el3.height = config.height 
+            diff_canvas_el3.width = config.width
+            diff_canvas_el3.height = config.height
 
             // image_el = document.createElement('img')
             // image_el.width = config.width
@@ -97,14 +111,19 @@
             // image_el.height = config.height
 
             document.getElementById("video_div").appendChild(video_el)
+
             document.getElementById("canvas_div").appendChild(capture_canvas_el)
-            document.getElementById("canvas_div").appendChild(diff_canvas_el)
-            document.getElementById("canvas_div").appendChild(diff_canvas_el2)
+            document.getElementById("canvas_div").appendChild(best_canvas_el)
+
+            // document.getElementById("canvas_div").appendChild(diff_canvas_el)
+            // document.getElementById("canvas_div").appendChild(diff_canvas_el2)
+
             document.getElementById("canvas_div2").appendChild(diff_canvas_el3)
-      
+
             // document.getElementById("image_div").appendChild(image_el)
 
             capture_context = capture_canvas_el.getContext("2d");
+            best_context = best_canvas_el.getContext("2d");
             diff_context = diff_canvas_el.getContext("2d");
             diff_context2 = diff_canvas_el2.getContext("2d");
             diff_context3 = diff_canvas_el3.getContext("2d");
@@ -118,64 +137,91 @@
             }
         }
 
-        var prev_image_data
 
         function detect_motion() {
-            setInterval(on_snapshot, 200)
+            setInterval(diff_snapshot, config.diff_interval_in_milliseconds)
+            setInterval(process_best_moment, config.best_moment_interval_in_milliseconds)
         }
 
-        function on_snapshot() {
+        var best_image_score = 0
+        var best_image_data
+
+        function process_best_moment() {
+            console.log("best_image_score", best_image_score)
+            if (best_image_score > 0) {
+                best_context.putImageData(best_image_data, 0, 0)
+                best_image_score = 0
+            }
+        }
+
+        function diff_snapshot() {
+
+            if (first_capture) {
+                first_capture = false
+                // capture an image, full size
+                capture_context.drawImage(video_el, 0, 0, config.width, config.height);
+                return
+            }
 
             // put previous image on diff canvas, scaled down
             diff_context.globalCompositeOperation = 'source-over';
-            diff_context.drawImage(capture_canvas_el, 0, 0, config.width * config.downscale, config.height * config.downscale)
+            diff_context.drawImage(capture_canvas_el, 0, 0, config.width * config.downscale, config.height * config
+                .downscale)
 
             // capture an image, full size
             capture_context.drawImage(video_el, 0, 0, config.width, config.height);
 
             // put new image on diff canvas, scaled down, showing differences, 
             diff_context.globalCompositeOperation = 'difference';
-            diff_context.drawImage(capture_canvas_el, 0, 0, config.width * config.downscale, config.height * config.downscale)
+            diff_context.drawImage(capture_canvas_el, 0, 0, config.width * config.downscale, config.height * config
+                .downscale)
 
-            // get the diffed image
-            var image_data = diff_context.getImageData(0, 0, config.width * config.downscale, config.height * config.downscale)
-            
-            // turn the diff image green
+            // get the image showing the different pixels
+            var image_data = diff_context.getImageData(0, 0, config.width * config.downscale, config.height * config
+                .downscale)
+
+            // turn the diff image green and also score it
             var image_score = 0
-            config.pixel_threshold = 70
-
+            console.log(image_data.data.length)
             for (var i = 0; i < image_data.data.length; i += 4) {
                 var r = image_data.data[i]
-                var g = image_data.data[i + 1] 
+                var g = image_data.data[i + 1]
                 var b = image_data.data[i + 2]
 
                 var rgb = r + g + b
-                if (rgb > config.pixel_threshold) {
-                    console.log(r, g, b)
-                    image_score += rgb
+                if (rgb > config.rgb_threshold) {
+                    //console.log(r, g, b)
+                    image_score++
                 }
 
-                var tot = r + g + b
-                if (tot > 255) tot = 255;
-                image_data.data[i] = 0
-                image_data.data[i+1] = tot
-                image_data.data[i+2] = 0
-                //image_data.data[i + 3] = 255
- 
+                var image_score_threshold = image_data.data.length / 4 * config.pct_of_pixels_threshold * .01
+                if (image_score > config.pct_of_pixels_threshold) {
+                    if (image_score > best_image_score) {
+                        best_image_score = image_score
+                        best_image_data = capture_context.getImageData(0, 0, config.width, config.height)
+                    }
+                }
+
+                if (false) {
+                    // turn image green
+                    var tot = r + g + b
+                    if (tot > 255) tot = 255;
+                    image_data.data[i] = 0
+                    image_data.data[i + 1] = tot
+                    image_data.data[i + 2] = 0
+                }
             }
 
             score_div.innerText = image_score
 
-            // put the green image to another canvas
-            diff_context2.putImageData(image_data, 0, 0)
-            
-            //
-            diff_context3.drawImage(diff_canvas_el2, 0, 0, config.width, config.height)
+            if (false) {
+                // put the green image to another canvas
+                diff_context2.putImageData(image_data, 0, 0)
 
-            // if (first_capture) {
-            //     first_capture = false
-            //     return
-            // }
+                // scale up the green image, for better viewing
+                diff_context3.drawImage(diff_canvas_el2, 0, 0, config.width, config.height)
+
+            }
 
             //requestAnimationFrame(on_snapshot)
         }
@@ -189,7 +235,7 @@
     <div id="video_div"></div>
     <div id="canvas_div"></div>
     <div id="canvas_div2"></div>
-    
+
     <!-- 
     <br>
     <video id="my_video" width="300" height="200" autoplay></video>
