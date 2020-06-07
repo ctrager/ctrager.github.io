@@ -6,9 +6,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Motion Detector</title>
     <style>
-        canvas {border: 1px solid red;}
-        video {border: 1px solid blue;}
-        image {border: 1px solid orange;}
+        canvas {
+            border: 1px solid red;
+        }
+
+        video {
+            border: 1px solid blue;
+        }
+
+        image {
+            border: 1px solid orange;
+        }
     </style>
     <script>
         var first_time = true
@@ -24,10 +32,11 @@
         var capture_context
         var diff_context
         var diff_context2
-
+ 
         var config = {
             width: 300,
-            height: 200
+            height: 200,
+            downscale: 1.0
         }
 
 
@@ -35,7 +44,10 @@
 
             navigator.mediaDevices.getUserMedia({
                     audio: false,
-                    video: { width: config.width, height: config.height }
+                    video: {
+                        width: config.width,
+                        height: config.height
+                    }
                 })
                 .then(function (stream) {
                     video_stream = stream
@@ -50,7 +62,7 @@
 
         function on_load() {
             console.log("on load")
-  
+
             video_el = document.createElement("video")
             video_el.width = config.width
             video_el.height = config.height
@@ -59,29 +71,32 @@
             capture_canvas_el = document.createElement("canvas")
             capture_canvas_el.width = config.width
             capture_canvas_el.height = config.height
-            
+
             diff_canvas_el = document.createElement("canvas")
-            diff_canvas_el.width = config.width
-            diff_canvas_el.height = config.height
+            diff_canvas_el.width = config.width * config.downscale
+            diff_canvas_el.height = config.height * config.downscale
 
             diff_canvas_el2 = document.createElement("canvas")
-            diff_canvas_el2.width = config.width
-            diff_canvas_el2.height = config.height
+            diff_canvas_el2.width = config.width * config.downscale
+            diff_canvas_el2.height = config.height * config.downscale
 
-            image_el = document.createElement('img')
-            image_el.width = config.width
-            image_el.height = config.height
+            // image_el = document.createElement('img')
+            // image_el.width = config.width
+
+
+
+            // image_el.height = config.height
 
             document.getElementById("video_div").appendChild(video_el)
             document.getElementById("canvas_div").appendChild(capture_canvas_el)
             document.getElementById("canvas_div").appendChild(diff_canvas_el)
-            document.getElementById("canvas_div").appendChild(diff_canvas_el2)
-            document.getElementById("image_div").appendChild(image_el)
+            document.getElementById("canvas_div2").appendChild(diff_canvas_el2)
+            // document.getElementById("image_div").appendChild(image_el)
 
             capture_context = capture_canvas_el.getContext("2d");
             diff_context = diff_canvas_el.getContext("2d");
             diff_context2 = diff_canvas_el2.getContext("2d");
-            
+
         }
 
         function on_start() {
@@ -92,16 +107,35 @@
         }
 
         var prev_image_data
+
         function on_snapshot() {
-                         
+
             //if (!first_capture) {
-                diff_context2.globalCompositeOperation = 'source-over';
-                diff_context2.drawImage(capture_canvas_el, 0, 0, config.width, config.height)
+            diff_context.globalCompositeOperation = 'source-over';
+            diff_context.drawImage(capture_canvas_el, 0, 0, config.width, config.height)
 
-                capture_context.drawImage(video_el, 0, 0, config.width, config.height);
+            capture_context.drawImage(video_el, 0, 0, config.width, config.height);
 
-                diff_context2.globalCompositeOperation = 'difference';
-                diff_context2.drawImage(capture_canvas_el, 0, 0, config.width, config.height)
+            diff_context.globalCompositeOperation = 'difference';
+            diff_context.drawImage(capture_canvas_el, 0, 0, config.width, config.height)
+
+            var image_data = diff_context.getImageData(0, 0, config.width, config.height)
+
+            for (var i = 0; i < image_data.data.length; i += 4) {
+                var r = image_data.data[i]
+                var g = image_data.data[i + 1] 
+                var b = image_data.data[i + 2]
+
+                var tot = r + g + b
+                if (tot > 255) tot = 255;
+                image_data.data[i] = 0
+                image_data.data[i+1] = tot
+                image_data.data[i+2] = 0
+                //image_data.data[i + 3] = 255
+ 
+            }
+
+            diff_context2.putImageData(image_data, 0, 0)
 
             //}
             // else {
@@ -117,13 +151,13 @@
             //var image_data = capture_context.getImageData(0,0, config.width, config.height)
 
             //captureContext.drawImage(video, 0, 0, captureWidth, captureHeight);
-    		//var captureImageData = captureContext.getImageData(0, 0, captureWidth, captureHeight);
+            //var captureImageData = captureContext.getImageData(0, 0, captureWidth, captureHeight);
 
- //           if (prev_image_data) {
-//
-  //          }
-    //        
-      //      prev_image_data = image_data
+            //           if (prev_image_data) {
+            //
+            //          }
+            //        
+            //      prev_image_data = image_data
         }
     </script>
 </head>
@@ -133,7 +167,7 @@
     <button onclick="on_snapshot()">snapshot</button>
     <div id="video_div"></div>
     <div id="canvas_div"></div>
-    <div id="image_div"></div>
+    <div id="canvas_div2"></div>
     <!-- 
     <br>
     <video id="my_video" width="300" height="200" autoplay></video>
