@@ -12,20 +12,26 @@
     </style>
     <script>
         var first_time = true
+        var first_capture = true
         var ready = false
         var video_stream
-        var canvas_el
+        var capture_canvas_el
+        var diff_canvas_el
+        var diff_canvas_el2
         var video_el
         var image_el
         var content_div
-        var ctx
+        var capture_context
+        var diff_context
+        var diff_context2
+
         var config = {
             width: 300,
             height: 200
         }
 
 
-        function init_web_audio() {
+        function init_video() {
 
             navigator.mediaDevices.getUserMedia({
                     audio: false,
@@ -50,31 +56,74 @@
             video_el.height = config.height
             video_el.autoplay = true
 
-            canvas_el = document.createElement("canvas")
-            canvas_el.width = config.width
-            canvas_el.height = config.height
+            capture_canvas_el = document.createElement("canvas")
+            capture_canvas_el.width = config.width
+            capture_canvas_el.height = config.height
+            
+            diff_canvas_el = document.createElement("canvas")
+            diff_canvas_el.width = config.width
+            diff_canvas_el.height = config.height
+
+            diff_canvas_el2 = document.createElement("canvas")
+            diff_canvas_el2.width = config.width
+            diff_canvas_el2.height = config.height
 
             image_el = document.createElement('img')
             image_el.width = config.width
             image_el.height = config.height
 
             document.getElementById("video_div").appendChild(video_el)
-            document.getElementById("canvas_div").appendChild(canvas_el)
+            document.getElementById("canvas_div").appendChild(capture_canvas_el)
+            document.getElementById("canvas_div").appendChild(diff_canvas_el)
+            document.getElementById("canvas_div").appendChild(diff_canvas_el2)
             document.getElementById("image_div").appendChild(image_el)
 
-            ctx = canvas_el.getContext("2d");
+            capture_context = capture_canvas_el.getContext("2d");
+            diff_context = diff_canvas_el.getContext("2d");
+            diff_context2 = diff_canvas_el2.getContext("2d");
+            
         }
 
         function on_start() {
             if (first_time) {
                 first_time = false
-                init_web_audio()
+                init_video()
             }
         }
 
+        var prev_image_data
         function on_snapshot() {
-            ctx.drawImage(video_el, 0, 0);
-            image_el.src = canvas_el.toDataURL('image/webp');
+                         
+            //if (!first_capture) {
+                diff_context2.globalCompositeOperation = 'source-over';
+                diff_context2.drawImage(capture_canvas_el, 0, 0, config.width, config.height)
+
+                capture_context.drawImage(video_el, 0, 0, config.width, config.height);
+
+                diff_context2.globalCompositeOperation = 'difference';
+                diff_context2.drawImage(capture_canvas_el, 0, 0, config.width, config.height)
+
+            //}
+            // else {
+            //       capture_context.drawImage(video_el, 0, 0, config.width, config.height);
+            //       first_capture = false
+            // }
+
+            // diff_context2.globalCompositeOperation = 'difference';
+            // diff_context2.drawImage(video_el, 0, 0, config.width, config.height)
+
+            // capture_context.drawImage(video_el, 0, 0, config.width, config.height);
+            // //image_el.src = canvas_el.toDataURL('image/webp');
+            //var image_data = capture_context.getImageData(0,0, config.width, config.height)
+
+            //captureContext.drawImage(video, 0, 0, captureWidth, captureHeight);
+    		//var captureImageData = captureContext.getImageData(0, 0, captureWidth, captureHeight);
+
+ //           if (prev_image_data) {
+//
+  //          }
+    //        
+      //      prev_image_data = image_data
         }
     </script>
 </head>
