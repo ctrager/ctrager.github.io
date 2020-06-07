@@ -30,6 +30,7 @@
         var video_el
         var image_el
         var content_div
+        var score_div
         var capture_context
         var diff_context
         var diff_context2
@@ -69,6 +70,8 @@
             video_el.width = config.width
             video_el.height = config.height
             video_el.autoplay = true
+
+            score_div = document.getElementById("score_div")
 
             capture_canvas_el = document.createElement("canvas")
             capture_canvas_el.width = config.width
@@ -117,6 +120,10 @@
 
         var prev_image_data
 
+        function detect_motion() {
+            setInterval(on_snapshot, 200)
+        }
+
         function on_snapshot() {
 
             // put previous image on diff canvas, scaled down
@@ -134,10 +141,19 @@
             var image_data = diff_context.getImageData(0, 0, config.width * config.downscale, config.height * config.downscale)
             
             // turn the diff image green
+            var image_score = 0
+            config.pixel_threshold = 70
+
             for (var i = 0; i < image_data.data.length; i += 4) {
                 var r = image_data.data[i]
                 var g = image_data.data[i + 1] 
                 var b = image_data.data[i + 2]
+
+                var rgb = r + g + b
+                if (rgb > config.pixel_threshold) {
+                    console.log(r, g, b)
+                    image_score += rgb
+                }
 
                 var tot = r + g + b
                 if (tot > 255) tot = 255;
@@ -148,26 +164,32 @@
  
             }
 
+            score_div.innerText = image_score
+
             // put the green image to another canvas
             diff_context2.putImageData(image_data, 0, 0)
             
             //
             diff_context3.drawImage(diff_canvas_el2, 0, 0, config.width, config.height)
 
-             if (first_capture) {
-                first_capture = false
-                return
-            }
+            // if (first_capture) {
+            //     first_capture = false
+            //     return
+            // }
+
+            //requestAnimationFrame(on_snapshot)
         }
     </script>
 </head>
 
 <body onload="on_load()">
     <button onclick="on_start()">start</button>
-    <button onclick="on_snapshot()">snapshot</button>
+    <button onclick="detect_motion()">snapshot</button>
+    <div id="score_div"></div>
     <div id="video_div"></div>
     <div id="canvas_div"></div>
     <div id="canvas_div2"></div>
+    
     <!-- 
     <br>
     <video id="my_video" width="300" height="200" autoplay></video>
