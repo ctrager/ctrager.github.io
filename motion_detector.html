@@ -26,17 +26,19 @@
         var capture_canvas_el
         var diff_canvas_el
         var diff_canvas_el2
+        var diff_canvsa_el3
         var video_el
         var image_el
         var content_div
         var capture_context
         var diff_context
         var diff_context2
- 
+        var diff_context3
+
         var config = {
-            width: 300,
+            width: 400,
             height: 200,
-            downscale: 1.0
+            downscale: .25
         }
 
 
@@ -80,6 +82,10 @@
             diff_canvas_el2.width = config.width * config.downscale
             diff_canvas_el2.height = config.height * config.downscale
 
+            diff_canvas_el3 = document.createElement("canvas")
+            diff_canvas_el3.width = config.width 
+            diff_canvas_el3.height = config.height 
+
             // image_el = document.createElement('img')
             // image_el.width = config.width
 
@@ -90,12 +96,15 @@
             document.getElementById("video_div").appendChild(video_el)
             document.getElementById("canvas_div").appendChild(capture_canvas_el)
             document.getElementById("canvas_div").appendChild(diff_canvas_el)
-            document.getElementById("canvas_div2").appendChild(diff_canvas_el2)
+            document.getElementById("canvas_div").appendChild(diff_canvas_el2)
+            document.getElementById("canvas_div2").appendChild(diff_canvas_el3)
+      
             // document.getElementById("image_div").appendChild(image_el)
 
             capture_context = capture_canvas_el.getContext("2d");
             diff_context = diff_canvas_el.getContext("2d");
             diff_context2 = diff_canvas_el2.getContext("2d");
+            diff_context3 = diff_canvas_el3.getContext("2d");
 
         }
 
@@ -110,17 +119,21 @@
 
         function on_snapshot() {
 
-            //if (!first_capture) {
+            // put previous image on diff canvas, scaled down
             diff_context.globalCompositeOperation = 'source-over';
-            diff_context.drawImage(capture_canvas_el, 0, 0, config.width, config.height)
+            diff_context.drawImage(capture_canvas_el, 0, 0, config.width * config.downscale, config.height * config.downscale)
 
+            // capture an image, full size
             capture_context.drawImage(video_el, 0, 0, config.width, config.height);
 
+            // put new image on diff canvas, scaled down, showing differences, 
             diff_context.globalCompositeOperation = 'difference';
-            diff_context.drawImage(capture_canvas_el, 0, 0, config.width, config.height)
+            diff_context.drawImage(capture_canvas_el, 0, 0, config.width * config.downscale, config.height * config.downscale)
 
-            var image_data = diff_context.getImageData(0, 0, config.width, config.height)
-
+            // get the diffed image
+            var image_data = diff_context.getImageData(0, 0, config.width * config.downscale, config.height * config.downscale)
+            
+            // turn the diff image green
             for (var i = 0; i < image_data.data.length; i += 4) {
                 var r = image_data.data[i]
                 var g = image_data.data[i + 1] 
@@ -135,29 +148,16 @@
  
             }
 
+            // put the green image to another canvas
             diff_context2.putImageData(image_data, 0, 0)
-
-            //}
-            // else {
-            //       capture_context.drawImage(video_el, 0, 0, config.width, config.height);
-            //       first_capture = false
-            // }
-
-            // diff_context2.globalCompositeOperation = 'difference';
-            // diff_context2.drawImage(video_el, 0, 0, config.width, config.height)
-
-            // capture_context.drawImage(video_el, 0, 0, config.width, config.height);
-            // //image_el.src = canvas_el.toDataURL('image/webp');
-            //var image_data = capture_context.getImageData(0,0, config.width, config.height)
-
-            //captureContext.drawImage(video, 0, 0, captureWidth, captureHeight);
-            //var captureImageData = captureContext.getImageData(0, 0, captureWidth, captureHeight);
-
-            //           if (prev_image_data) {
+            
             //
-            //          }
-            //        
-            //      prev_image_data = image_data
+            diff_context3.drawImage(diff_canvas_el2, 0, 0, config.width, config.height)
+
+             if (first_capture) {
+                first_capture = false
+                return
+            }
         }
     </script>
 </head>
