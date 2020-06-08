@@ -24,7 +24,7 @@
 
         #best_canvas {
             border: 1px solid black;
-            background-color: lightgreen
+            background-color: black;
         }
 
         #config {
@@ -66,6 +66,7 @@
         var small_green_context
         var live_motion_context
         var best_context
+        var start_time
 
         var config = {
             width: 400,
@@ -90,7 +91,7 @@
                     video_stream = stream
                     video_el.srcObject = stream
                     ready = true
-                    console.log("ready")
+                    detect_motion()
                 })
                 .catch(function (err) {
                     console.log(err)
@@ -136,10 +137,6 @@
             small_green_context = small_green_canvas.getContext("2d");
             live_motion_context = live_motion_canvas.getContext("2d");
 
-            // calc how many pixels must be "on" for there to be motion as a percentage of the pixels
-            image_score_threshold = (config.downscale_width * config.downscale_height) * (config
-                .pct_of_pixels_threshold * .01)
-
 
         }
 
@@ -167,27 +164,26 @@
                 init_video()
             }
 
-            detect_motion()
         }
 
 
         function detect_motion() {
-            
+
             diff_interval = setInterval(diff_snapshot, config.diff_interval_in_milliseconds)
             best_moment_interval = setInterval(process_best_moment, config.best_moment_interval_in_milliseconds)
             on_hide_config()
         }
 
-        var best_image_score = 0
+        var best_image_pct = 0
         var best_image_data
-        var image_score_threshold
 
         function process_best_moment() {
             if (!ready) return;
 
-            if (best_image_score > 0) {
+            if (best_image_pct > 0) {
+                console.log(best_image_pct)
                 best_context.putImageData(best_image_data, 0, 0)
-                best_image_score = 0
+                best_image_pct = 0
             }
         }
 
@@ -217,7 +213,7 @@
             var image_data = diff_context.getImageData(0, 0, config.downscale_width, config.downscale_height)
 
             // calc the score of the diff 
-            var image_score = 0
+            var pixel_count = 0
 
             for (var i = 0; i < image_data.data.length; i += 4) {
                 var r = image_data.data[i]
@@ -228,18 +224,26 @@
 
                 // is the combined rgb bright enough?
                 if (rgb > config.rgb_threshold) {
-                    image_score++
+                    pixel_count++
                 }
 
 
                 // is the image with the most motion?
-                if (image_score > config.pct_of_pixels_threshold) {
-                    if (image_score > best_image_score) {
-                        best_image_score = image_score
-                        best_image_data = capture_context.getImageData(0, 0, config.width, config.height)
+
+                image_pct = Math.round(pixel_count * 100 / (config.downscale_height * config.downscale_width))
+
+                if (image_pct > config.pct_of_pixels_threshold) {
+                    if (false) {
+                        // report and start timer
+                    } else {
+                        if (image_pct > best_image_pct) {
+                            // if in state 0, report, then start time
+                            // else
+                            best_image_pct = image_pct
+                            best_image_data = capture_context.getImageData(0, 0, config.width, config.height)
+                        }
                     }
                 }
-
 
                 // turn image green for fun, for display on the screen
                 var tot = r + g + b
@@ -250,9 +254,10 @@
 
             }
 
+            console.log(image_pct)
+
             // show the percent of pixels with "motion"
-            score_el.innerText = Math.round(image_score * 100 / (config.downscale_height * config.downscale_width))
-            score_el.innerText += "%"
+            score_el.innerText = image_pct + "%"
 
             // put the green image to another canvas
             small_green_context.putImageData(image_data, 0, 0)
@@ -279,21 +284,35 @@
             The logic compares the latest snapshot with the previous snapshot. It calculates what percentage of the
             pixels are different. If the percentage is above a threshold, then that is considered "motion".
         </div>
+
+        <div>
+            Throttle reporting. After motion is first detected and reported, if there is still motion, keep reporting
+            motion after these intervals (in seconds).
+            For example, for "10 20 20 60 300 3600", report motion, then report again 10 seconds later, then 20 seconds
+            after that,
+            then 20 seconds after that, the 60 seconds after that, then 5 minutes after that, then one hour after that.
+            Then return to initial state.
+            <br>
+            <input onchange="on_change_config()" id="cycle" value="10 20 20 60 300 3600" size="60"></input>
+        </div>
+
         <div>
             Snapshot interval in milliseconds (0-1000):
             <input onchange="on_change_config()" id="diff_interval_in_milliseconds_input" type="number" value="200"
                 min="1" max="1000" size="4"></input>
         </div>
         <div>
-            Pixel threshold - how different must a pixel be to be considered different? Total of "difference" r + g + b
-            (1-255):
+            Pixel threshold - how different must a pixel (r + g + b values) be to be considered different from previous
+            snapshot?
+            (1-765):
             <input onchange="on_change_config()" id="rgb_threshold_input" type="number" value="75" min="1"
-                max="255"></input>
+                max="765"></input>
         </div>
 
         <div>
-            Image threshold - percent of image that must be different from previous (1-99):
-            <input onchange="on_change_config()" id="image_score_threshold_input" type="number" value="15" min="1"
+            Image threshold - percent of image pixels that must be different from previous snapshot to be considered
+            motion (1-99):
+            <input onchange="on_change_config()" id="image_pct_threshold_input" type="number" value="15" min="1"
                 max="99"></input>
 
         </div>
