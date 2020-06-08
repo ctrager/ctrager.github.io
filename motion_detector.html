@@ -6,6 +6,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Motion Detector</title>
     <style>
+        body {
+            font-family: verdana, arial;
+            font-size: 16px;
+            margin: 20px;
+        }
+
         canvas {
             border: 1px solid red;
         }
@@ -17,6 +23,27 @@
         image {
             border: 1px solid orange;
         }
+
+        #config {
+            margin-top: 20px;
+            margin-bottom: 20px;
+            padding: 20px;
+            border: 1px solid gray;
+            width: 900px;
+        }
+
+        #config div {
+
+            margin: 10px;
+        }
+
+        #show_config {
+            display: none;
+            margin-top: 20px;
+            margin-bottom: 20px;
+
+        }
+
     </style>
     <script>
         var first_time = true
@@ -130,6 +157,21 @@
 
         }
 
+        function on_change_config() {
+
+        }
+
+        function on_show_config() {
+            document.getElementById("show_config").style = "display: none;"
+            document.getElementById("config").style = "display:block;"
+
+        }
+
+        function on_hide_config() {
+            document.getElementById("config").style = "display:none;"
+            document.getElementById("show_config").style = "display: block;"
+        }
+
         function on_start() {
             if (first_time) {
                 first_time = false
@@ -230,6 +272,37 @@
 
 <body onload="on_load()">
     <button onclick="on_start()">start</button>
+    <div id="show_config">
+        <a href="Javascript:on_show_config()">Show config</a>
+    </div>
+
+    <div id="config">
+        <div><a href="Javascript:on_hide_config()">Hide config</a></div>
+
+        <div>
+            The logic works by comparing latest with previous snapshot looking for differences.
+        </div>
+        <div>
+            Snapshot interval in milliseconds (0-1000):
+            <input onchange="on_change_config()" id="diff_interval_in_milliseconds_input" type="number" value="200"
+                min="1" max="1000" size="4"></input>
+        </div>
+        <div>
+            Pixel threshold - total value of r + g + b for pixel to be considered "on" (1-255):
+            <input onchange="on_change_config()" id="rgb_threshold_input" type="number" value="75" min="1"
+                max="255"></input>
+        </div>
+
+        <div>
+            Image threshold - percent of pixels (above threshold) of image that must be different from previous (1-99):
+            <input onchange="on_change_config()" id="image_score_threshold_input" type="number" value="15" min="1"
+                max="99"></input>
+
+        </div>
+
+    </div>
+
+
     <button onclick="detect_motion()">snapshot</button>
     <div id="score_div"></div>
     <div id="video_div"></div>
