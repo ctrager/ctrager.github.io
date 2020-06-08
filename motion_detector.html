@@ -44,7 +44,6 @@
             margin-bottom: 20px;
 
         }
-
     </style>
     <script>
         var first_time = true
@@ -54,32 +53,27 @@
         var capture_canvas_el
         var best_canvas_el
         var diff_canvas_el
-        var diff_canvas_el2
+        var small_green_canvas
         var live_motion_canvas
         var video_el
         var image_el
         var content_div
-        var score_div
+        var score_el
         var capture_context
         var diff_context
-        var diff_context2
+        var small_green_context
         var live_motion_context
         var best_context
 
         var config = {
             width: 400,
             height: 200,
-            downscale: .25,
+            downscale_factor: .25,
             rgb_threshold: 70,
             pct_of_pixels_threshold: 10,
             diff_interval_in_milliseconds: 200,
             best_moment_interval_in_milliseconds: 10 * 1000
         }
-
-        // 400 * 200 = 80,000
-        // 100 * 50 = 5000
-        // 5000 * 4 bytes = 20,000
-
 
         function init_video() {
 
@@ -104,12 +98,15 @@
         function on_load() {
             console.log("on load")
 
+            config.downscale_width = Math.round(config.width * config.downscale_factor)
+            config.downscale_height = Math.round(config.height * config.downscale_factor)
+
             video_el = document.getElementById("video_el")
             video_el.width = config.width
             video_el.height = config.height
             video_el.autoplay = true
 
-            score_div = document.getElementById("score_div")
+            score_el = document.getElementById("score_el")
 
             capture_canvas_el = document.createElement("canvas")
             capture_canvas_el.width = config.width
@@ -120,12 +117,12 @@
             best_canvas_el.height = config.height
 
             diff_canvas_el = document.createElement("canvas")
-            diff_canvas_el.width = config.width * config.downscale
-            diff_canvas_el.height = config.height * config.downscale
+            diff_canvas_el.width = config.downscale_width
+            diff_canvas_el.height = config.downscale_height
 
-            diff_canvas_el2 = document.createElement("canvas")
-            diff_canvas_el2.width = config.width * config.downscale
-            diff_canvas_el2.height = config.height * config.downscale
+            small_green_canvas = document.createElement("canvas")
+            small_green_canvas.width = config.downscale_width
+            small_green_canvas.height = config.downscale_height
 
             live_motion_canvas = document.getElementById("live_motion_canvas")
             live_motion_canvas.width = config.width
@@ -138,7 +135,7 @@
 
             // image_el.height = config.height
 
-          
+
             //document.getElementById("canvas_div").appendChild(capture_canvas_el)
             //document.getElementById("canvas_div").appendChild(best_canvas_el)
 
@@ -152,9 +149,12 @@
             capture_context = capture_canvas_el.getContext("2d");
             best_context = best_canvas_el.getContext("2d");
             diff_context = diff_canvas_el.getContext("2d");
-            diff_context2 = diff_canvas_el2.getContext("2d");
+            small_green_context = small_green_canvas.getContext("2d");
             live_motion_context = live_motion_canvas.getContext("2d");
-            console.log(live_motion_context)
+  
+            // calc how many pixels must be "on" for there to be motion as a percentage of the pixels
+            image_score_threshold = (config.downscale_width * config.downscale_height) * (config.pct_of_pixels_threshold * .01)
+
 
         }
 
@@ -182,7 +182,7 @@
                 init_video()
             }
             detect_motion()
-         }
+        }
 
 
         function detect_motion() {
@@ -196,12 +196,14 @@
         function process_best_moment() {
             if (!ready) return;
 
-            console.log("best_image_score", best_image_score)
+            console.log("best_image_score", best_image_score, Math.round(best_image_score * 100 / (config.downscale_height * config.downscale_width)))
             if (best_image_score > 0) {
                 best_context.putImageData(best_image_data, 0, 0)
                 best_image_score = 0
             }
         }
+
+        var image_score_threshold
 
         function diff_snapshot() {
             if (!ready) return;
@@ -215,36 +217,35 @@
 
             // put previous image on diff canvas, scaled down
             diff_context.globalCompositeOperation = 'source-over';
-            diff_context.drawImage(capture_canvas_el, 0, 0, config.width * config.downscale, config.height * config
-                .downscale)
-
+            diff_context.drawImage(capture_canvas_el, 0, 0, config.downscale_width, config.downscale_height)
+ 
             // capture an image, full size
             capture_context.drawImage(video_el, 0, 0, config.width, config.height);
 
             // put new image on diff canvas, scaled down, showing differences, 
             diff_context.globalCompositeOperation = 'difference';
-            diff_context.drawImage(capture_canvas_el, 0, 0, config.width * config.downscale, config.height * config
-                .downscale)
+            diff_context.drawImage(capture_canvas_el, 0, 0, config.downscale_width, config.downscale_height)
 
             // get the image showing the different pixels
-            var image_data = diff_context.getImageData(0, 0, config.width * config.downscale, config.height * config
-                .downscale)
+            var image_data = diff_context.getImageData(0, 0, config.downscale_width, config.downscale_height)
 
-            // turn the diff image green and also score it
+            // calc the score of the diff 
             var image_score = 0
-            console.log(image_data.data.length)
+  
             for (var i = 0; i < image_data.data.length; i += 4) {
                 var r = image_data.data[i]
                 var g = image_data.data[i + 1]
                 var b = image_data.data[i + 2]
 
                 var rgb = r + g + b
+
+                // is the combined rgb bright enough?
                 if (rgb > config.rgb_threshold) {
-                    //console.log(r, g, b)
                     image_score++
                 }
 
-                var image_score_threshold = image_data.data.length / 4 * config.pct_of_pixels_threshold * .01
+                
+                // is the image with the most motion?
                 if (image_score > config.pct_of_pixels_threshold) {
                     if (image_score > best_image_score) {
                         best_image_score = image_score
@@ -252,34 +253,34 @@
                     }
                 }
 
-                if (true) {
-                    // turn image green
-                    var tot = r + g + b
-                    if (tot > 255) tot = 255;
-                    image_data.data[i] = 0
-                    image_data.data[i + 1] = tot
-                    image_data.data[i + 2] = 0
-                }
-            }
 
-            score_div.innerText = image_score
-
-            if (true) {
-                // put the green image to another canvas
-                diff_context2.putImageData(image_data, 0, 0)
-
-                // scale up the green image, for better viewing
-                live_motion_context.drawImage(diff_canvas_el2, 0, 0, config.width, config.height)
+                // turn image green
+                var tot = r + g + b
+                if (tot > 255) tot = 255;
+                image_data.data[i] = 0
+                image_data.data[i + 1] = tot
+                image_data.data[i + 2] = 0
 
             }
+
+            // show the percent of pixels with "motion"
+            score_el.innerText = Math.round(image_score * 100 / (config.downscale_height * config.downscale_width))
+            score_el.innerText += "%"
+
+            // put the green image to another canvas
+            small_green_context.putImageData(image_data, 0, 0)
+
+            // scale up the green image, for better viewing
+            live_motion_context.drawImage(small_green_canvas, 0, 0, config.width, config.height)
+
         }
     </script>
 </head>
 
 <body onload="on_load()">
-    
+
     <button id="start_button" onclick="on_start()">start</button>
-    
+
     <div id="show_config">
         <a href="Javascript:on_show_config()">Show config</a>
     </div>
@@ -307,24 +308,27 @@
                 max="99"></input>
 
         </div>
+
+        <div>
+            Downscale full image for pixel analysis by this factor. Bigger is slower. (.1 to 1.0):
+            <input onchange="on_change_config()" id="downscale_factor_input" type="number" value=".25" min=".1" max="1.0"></input>
+        </div>
+
     </div>
-
-
-    <div id="score_div"></div>
 
     <table>
         <tr>
             <td>Live Video:</td>
-            <td>Motion:</td>
+            <td>Motion <span id="score_el">0%</span></td>
         </tr>
         <tr>
             <td><video id="video_el"></video></td>
             <td><canvas id="live_motion_canvas"></canvas></td>
         </tr>
     </table>
-    
-   
-    
+
+
+
 
 
     <div id="canvas_div"></div>
