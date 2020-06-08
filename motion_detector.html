@@ -12,8 +12,9 @@
             margin: 20px;
         }
 
-        canvas {
-            border: 1px solid red;
+        #live_motion_canvas {
+            border: 1px solid black;
+            background-color: green;
         }
 
         video {
@@ -21,8 +22,9 @@
             background-color: lightgray;
         }
 
-        image {
-            border: 1px solid orange;
+        #best_canvas {
+            border: 1px solid black;
+            background-color: lightgreen
         }
 
         #config {
@@ -112,7 +114,7 @@
             capture_canvas_el.width = config.width
             capture_canvas_el.height = config.height
 
-            best_canvas_el = document.createElement("canvas")
+            best_canvas_el = document.getElementById("best_canvas")
             best_canvas_el.width = config.width
             best_canvas_el.height = config.height
 
@@ -128,32 +130,15 @@
             live_motion_canvas.width = config.width
             live_motion_canvas.height = config.height
 
-            // image_el = document.createElement('img')
-            // image_el.width = config.width
-
-
-
-            // image_el.height = config.height
-
-
-            //document.getElementById("canvas_div").appendChild(capture_canvas_el)
-            //document.getElementById("canvas_div").appendChild(best_canvas_el)
-
-            //document.getElementById("canvas_div2").appendChild(diff_canvas_el)
-            //document.getElementById("canvas_div2").appendChild(diff_canvas_el2)
-
-            //document.getElementById("canvas_div2").appendChild(diff_canvas_el3)
-
-            // document.getElementById("image_div").appendChild(image_el)
-
             capture_context = capture_canvas_el.getContext("2d");
             best_context = best_canvas_el.getContext("2d");
             diff_context = diff_canvas_el.getContext("2d");
             small_green_context = small_green_canvas.getContext("2d");
             live_motion_context = live_motion_canvas.getContext("2d");
-  
+
             // calc how many pixels must be "on" for there to be motion as a percentage of the pixels
-            image_score_threshold = (config.downscale_width * config.downscale_height) * (config.pct_of_pixels_threshold * .01)
+            image_score_threshold = (config.downscale_width * config.downscale_height) * (config
+                .pct_of_pixels_threshold * .01)
 
 
         }
@@ -181,29 +166,31 @@
                 first_time = false
                 init_video()
             }
+
             detect_motion()
         }
 
 
         function detect_motion() {
+            
             diff_interval = setInterval(diff_snapshot, config.diff_interval_in_milliseconds)
-            setInterval(process_best_moment, config.best_moment_interval_in_milliseconds)
+            best_moment_interval = setInterval(process_best_moment, config.best_moment_interval_in_milliseconds)
+            on_hide_config()
         }
 
         var best_image_score = 0
         var best_image_data
+        var image_score_threshold
 
         function process_best_moment() {
             if (!ready) return;
 
-            console.log("best_image_score", best_image_score, Math.round(best_image_score * 100 / (config.downscale_height * config.downscale_width)))
             if (best_image_score > 0) {
                 best_context.putImageData(best_image_data, 0, 0)
                 best_image_score = 0
             }
         }
 
-        var image_score_threshold
 
         function diff_snapshot() {
             if (!ready) return;
@@ -218,11 +205,11 @@
             // put previous image on diff canvas, scaled down
             diff_context.globalCompositeOperation = 'source-over';
             diff_context.drawImage(capture_canvas_el, 0, 0, config.downscale_width, config.downscale_height)
- 
+
             // capture an image, full size
             capture_context.drawImage(video_el, 0, 0, config.width, config.height);
 
-            // put new image on diff canvas, scaled down, showing differences, 
+            // put new image on diff canvas, scaled down, where only different pixes are lit up 
             diff_context.globalCompositeOperation = 'difference';
             diff_context.drawImage(capture_canvas_el, 0, 0, config.downscale_width, config.downscale_height)
 
@@ -231,7 +218,7 @@
 
             // calc the score of the diff 
             var image_score = 0
-  
+
             for (var i = 0; i < image_data.data.length; i += 4) {
                 var r = image_data.data[i]
                 var g = image_data.data[i + 1]
@@ -244,7 +231,7 @@
                     image_score++
                 }
 
-                
+
                 // is the image with the most motion?
                 if (image_score > config.pct_of_pixels_threshold) {
                     if (image_score > best_image_score) {
@@ -254,7 +241,7 @@
                 }
 
 
-                // turn image green
+                // turn image green for fun, for display on the screen
                 var tot = r + g + b
                 if (tot > 255) tot = 255;
                 image_data.data[i] = 0
@@ -289,7 +276,8 @@
         <div><a href="Javascript:on_hide_config()">Hide config</a></div>
 
         <div>
-            The logic works by comparing latest with previous snapshot looking for differences.
+            The logic compares the latest snapshot with the previous snapshot. It calculates what percentage of the
+            pixels are different. If the percentage is above a threshold, then that is considered "motion".
         </div>
         <div>
             Snapshot interval in milliseconds (0-1000):
@@ -297,51 +285,53 @@
                 min="1" max="1000" size="4"></input>
         </div>
         <div>
-            Pixel threshold - total value of r + g + b for pixel to be considered "on" (1-255):
+            Pixel threshold - how different must a pixel be to be considered different? Total of "difference" r + g + b
+            (1-255):
             <input onchange="on_change_config()" id="rgb_threshold_input" type="number" value="75" min="1"
                 max="255"></input>
         </div>
 
         <div>
-            Image threshold - percent of pixels (above threshold) of image that must be different from previous (1-99):
+            Image threshold - percent of image that must be different from previous (1-99):
             <input onchange="on_change_config()" id="image_score_threshold_input" type="number" value="15" min="1"
                 max="99"></input>
 
         </div>
 
         <div>
+            Width (100-1000) and Height (100-1000) of raw image in pixels:
+            <input onchange="on_change_config()" id="width_input" type="number" value="400" min="100"
+                max="1000"></input>
+            <input onchange="on_change_config()" id="height_input" type="number" value="200" min="100"
+                max="1000"></input>
+        </div>
+
+
+        <div>
             Downscale full image for pixel analysis by this factor. Bigger is slower. (.1 to 1.0):
-            <input onchange="on_change_config()" id="downscale_factor_input" type="number" value=".25" min=".1" max="1.0"></input>
+            <input onchange="on_change_config()" id="downscale_factor_input" type="number" value=".25" min=".1"
+                max="1.0"></input>
         </div>
 
     </div>
+    <div>
+        Live Video:
+        <br>
+        <video id="video_el"></video>
 
-    <table>
-        <tr>
-            <td>Live Video:</td>
-            <td>Motion <span id="score_el">0%</span></td>
-        </tr>
-        <tr>
-            <td><video id="video_el"></video></td>
-            <td><canvas id="live_motion_canvas"></canvas></td>
-        </tr>
-    </table>
+    </div>
 
+    <div>
+        Motion <span id="score_el">0%</span>
+        <br>
+        <canvas id="live_motion_canvas"></canvas>
+    </div>
 
-
-
-
-    <div id="canvas_div"></div>
-    <div id="canvas_div2"></div>
-
-    <!-- 
-    <br>
-    <video id="my_video" width="300" height="200" autoplay></video>
-    <br>
-    <canvas id="my_canvas" width="300" height="200"></canvas>
-    <br>
-    <image id="my_image" width="300" height="200"></image>
-    -->
+    <div>
+        Snapshot of motion
+        <br>
+        <canvas id="best_canvas"></canvas>
+    </div>
 </body>
 
 </html>
