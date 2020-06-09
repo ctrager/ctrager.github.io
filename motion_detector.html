@@ -75,8 +75,11 @@
             rgb_threshold: 70,
             pct_of_pixels_threshold: 10,
             diff_interval_in_milliseconds: 200,
-            best_moment_interval_in_milliseconds: 10 * 1000
+            best_moment_interval_in_milliseconds: 10 * 1000,
+            cycle: [5, 6, 8, 9]
         }
+
+        var cycle_index = 0
 
         function init_video() {
 
@@ -168,7 +171,6 @@
         function detect_motion() {
 
             diff_interval = setInterval(diff_snapshot, config.diff_interval_in_milliseconds)
-            best_moment_interval = setInterval(process_best_moment, config.best_moment_interval_in_milliseconds)
             on_hide_config()
         }
 
@@ -176,15 +178,28 @@
         var best_image_data
 
         function process_best_moment() {
-            if (!ready) return;
+            console.log("process_best_moment", cycle_index, config.cycle[cycle_index], best_image_pct)
 
             if (best_image_pct > 0) {
-                console.log(best_image_pct)
-                best_context.putImageData(best_image_data, 0, 0)
+                report(best_image_pct, best_image_data)
                 best_image_pct = 0
+            }
+ 
+            if (cycle_index + 1 == config.cycle.length) {
+                console.log("resetting")
+                cycle_index = 0
+            }
+            else {
+                setTimeout(process_best_moment, config.cycle[cycle_index] * 1000)
+                cycle_index++
             }
         }
 
+        function report(pct, image_data) {
+            console.log(best_image_pct, new Date().getTime())
+            best_context.putImageData(image_data, 0, 0)
+
+        }
 
         function diff_snapshot() {
             if (!ready) return;
@@ -225,24 +240,6 @@
                     pixel_count++
                 }
 
-
-                // is the image with the most motion?
-
-                image_pct = Math.round(pixel_count * 100 / (config.downscale_height * config.downscale_width))
-
-                if (image_pct > config.pct_of_pixels_threshold) {
-                    if (false) {
-                        // report and start timer
-                    } else {
-                        if (image_pct > best_image_pct) {
-                            // if in state 0, report, then start time
-                            // else
-                            best_image_pct = image_pct
-                            best_image_data = capture_context.getImageData(0, 0, config.width, config.height)
-                        }
-                    }
-                }
-
                 // turn image green for fun, for display on the screen
                 var tot = r + g + b
                 if (tot > 255) tot = 255;
@@ -252,7 +249,7 @@
 
             }
 
-            console.log(image_pct)
+            image_pct = Math.round(pixel_count * 100 / (config.downscale_height * config.downscale_width))
 
             // show the percent of pixels with "motion"
             score_el.innerText = image_pct + "%"
@@ -263,12 +260,28 @@
             // scale up the green image, for better viewing
             live_motion_context.drawImage(small_green_canvas, 0, 0, config.width, config.height)
 
+            // image_pct > 90, is like a glitch
+            if (image_pct < 90 && image_pct > config.pct_of_pixels_threshold) {
+                console.log("image within threshold", image_pct)
+                var captured_motion_image_data = capture_context.getImageData(0, 0, config.width, config.height)
+                if (cycle_index == 0) {
+                    report(image_pct, captured_motion_image_data)
+                    setTimeout(process_best_moment, config.cycle[0] * 1000)
+                    cycle_index++
+                } else {
+                    if (image_pct > best_image_pct) {
+                        best_image_pct = image_pct
+                        best_image_data = captured_motion_image_data
+                    }
+                }
+            }
+
         }
     </script>
 </head>
 
 <body onload="on_load()">
- 
+
     <div id="first_div"></div>
     <button id="start_button" onclick="on_start()">start</button>
 
