@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <script>
+        var create_button
+        var textbox
+
+        function on_load() {
+            console.log("on_load")
+
+            create_button = document.getElementById('create_button')
+
+            textbox = document.getElementById('textbox')
+
+            create_button.addEventListener('click', on_create)
+
+        }
+
+        function on_create() {
+            console.log("create")
+
+            var link = document.createElement('a');
+            link.setAttribute('download', 'info.txt');
+            //link.href = makeTextFile(textbox.value);
+
+            img_el = document.getElementById("img_el")
+            canvas_el = document.getElementById("canvas_el")
+            ctx = canvas_el.getContext("2d")
+            ctx.drawImage(img_el, 0, 0)
+            data_url = img_el.toDataURL("image/jpeg")
+
+            link.href = data_url
+            link.innerText = "a link"
+            document.body.appendChild(link);
+
+            // wait for the link to be added to the document
+            window.requestAnimationFrame(function () {
+                // clicking link
+                var event = new MouseEvent('click');
+                link.dispatchEvent(event);
+                document.body.removeChild(link);
+            });
+        }
+
+
+
+        var textFile = null
+        var image_file = null
+
+        function make_image_file(image_data) {
+            var data = new Blob([image_data], {
+                type: 'image/jpeg'
+            });
+
+            // If we are replacing a previously generated file we need to
+            // manually revoke the object URL to avoid memory leaks.
+            if (image_file !== null) {
+                window.URL.revokeObjectURL(image_file);
+            }
+
+            image_file = window.URL.createObjectURL(data);
+
+            return image_file;
+        }
+
+        function makeTextFile(text) {
+            var data = new Blob([text], {
+                type: 'text/plain'
+            });
+
+            // If we are replacing a previously generated file we need to
+            // manually revoke the object URL to avoid memory leaks.
+            if (textFile !== null) {
+                window.URL.revokeObjectURL(textFile);
+            }
+
+            textFile = window.URL.createObjectURL(data);
+
+            return textFile;
+        }
+    </script>
+</head>
+
+<body onload="on_load()">
+    <textarea id="textbox">Type something here</textarea>
+    <button id="create_button">Create file</button>
+    <img id="img_el" src="sample.jpg" width="150" height="100"></img>
+    <br>
+    <canvas id="canvas_el"></canvas>
+    <br>
+</body>
+
+</html>

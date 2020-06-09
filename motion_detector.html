@@ -184,12 +184,11 @@
                 report(best_image_pct, best_image_data)
                 best_image_pct = 0
             }
- 
+
             if (cycle_index + 1 == config.cycle.length) {
                 console.log("resetting")
                 cycle_index = 0
-            }
-            else {
+            } else {
                 setTimeout(process_best_moment, config.cycle[cycle_index] * 1000)
                 cycle_index++
             }
@@ -199,6 +198,46 @@
             console.log(best_image_pct, new Date().getTime())
             best_context.putImageData(image_data, 0, 0)
 
+            download_motion_image()
+        }
+
+        function download_motion_image() {
+            console.log("download")
+            var link = document.createElement('a');
+            var filename = "pic_" + get_yyyy_mm_dd_hh_mm_ss(new Date()) + ".png"
+            link.setAttribute("download", filename)
+            link.href = best_canvas_el.toDataURL("image/png")
+            link.innerText = "a link"
+            document.body.appendChild(link);
+
+            // wait for the link to be added to the document
+            window.requestAnimationFrame(function () {
+                // clicking link
+                var event = new MouseEvent('click');
+                link.dispatchEvent(event);
+                document.body.removeChild(link);
+            })
+        }
+
+        function get_yyyy_mm_dd_hh_mm_ss(dt) {
+   
+            // ensure date comes as 01, 09 etc
+            var DD = ("0" + dt.getDate()).slice(-2);
+
+            // getMonth returns month from 0
+            var MM = ("0" + (dt.getMonth() + 1)).slice(-2);
+
+            var YYYY = dt.getFullYear();
+
+            var hh = ("0" + dt.getHours()).slice(-2);
+
+            var mm = ("0" + dt.getMinutes()).slice(-2);
+
+            var ss = ("0" + dt.getSeconds()).slice(-2);
+
+            var date_string = YYYY + "-" + MM + "-" + DD + " " + hh + ":" + mm + ":" + ss;
+
+            return date_string
         }
 
         function diff_snapshot() {
