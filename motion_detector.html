@@ -137,7 +137,6 @@
             small_green_context = small_green_canvas.getContext("2d");
             live_motion_context = live_motion_canvas.getContext("2d");
 
-
         }
 
         function on_change_config() {
@@ -163,7 +162,6 @@
                 first_time = false
                 init_video()
             }
-
         }
 
 
@@ -270,7 +268,8 @@
 </head>
 
 <body onload="on_load()">
-
+ 
+    <div id="first_div"></div>
     <button id="start_button" onclick="on_start()">start</button>
 
     <div id="show_config">
