@@ -1,6 +1,7 @@
 https://ctrager.github.io/
 https://ctrager.github.io/metronome.html
-https://ctrager.github.io/music_tools.html
-https://ctrager.github.io/pitch.html
 https://ctrager.github.io/tones.html
-https://ctrager.github.io/metronome.html
+https://ctrager.github.io/pitch.html
+https://ctrager.github.io/performances.html
+https://ctrager.github.io/motion_detector.html
+
