@@ -15,6 +15,7 @@
         #start_button {
             font-size: 18px;
             background-color: lightgreen;
+            width: 100px;
         }
 
         #live_motion_canvas {
@@ -83,6 +84,8 @@
 
         var config = {}
 
+        var track
+
         function on_load() {
             console.log("on load")
             score_el = document.getElementById("score_el")
@@ -100,8 +103,10 @@
                 })
                 .then(function (stream) {
                     video_el.srcObject = stream
-                    config.width = stream.getVideoTracks()[0].getSettings().width,
-                        config.height = stream.getVideoTracks()[0].getSettings().height
+                    track = stream.getVideoTracks()[0]
+                    console.log(track)
+                    config.width = track.getSettings().width
+                    config.height = track.getSettings().height
                     start_detecting_motion()
                     ready = true
                 })
@@ -221,11 +226,13 @@
         function on_stop() {
             clearInterval(diff_interval)
             clearTimeout(process_best_moment_timeout)
+            video_el.pause()
         }
 
         var files_downloaded_count
 
         function start_detecting_motion() {
+            video_el.play()
             load_config()
             on_hide_config()
             configure_elements()
@@ -241,15 +248,17 @@
 
                 // we want to do two dummy downloads to trigger Chrome's
                 // "Download Multiple Files?" permission dialog
-
-                download_canvas(capture_canvas_el)
+                var filename = make_filename(0)
+                download_canvas(capture_canvas_el, filename)
 
             } else {
                 diff_interval = setInterval(diff_snapshot, config.diff_interval_in_milliseconds)
             }
         }
 
-
+        function make_filename(score) {
+            return "motion_" + get_yyyy_mm_dd_hh_mm_ss(new Date()) + "_score_" + score + ".png"
+        }
 
         function process_best_moment() {
             console.log("process_best_moment", cycle_index, config.cycle[cycle_index], best_image_pct)
@@ -274,14 +283,14 @@
             score_el2.innerText = pct + "% at " + get_yyyy_mm_dd_hh_mm_ss(new Date())
 
             if (config.enable_download) {
-                download_canvas(best_canvas)
+                filename = make_filename(pct)
+                download_canvas(best_canvas, filename)
             }
         }
 
-        function download_canvas(canvas) {
+        function download_canvas(canvas, filename) {
             console.log("download started")
             var link = document.createElement('a');
-            var filename = "motion_" + get_yyyy_mm_dd_hh_mm_ss(new Date()) + ".png"
             link.setAttribute("download", filename)
             link.href = canvas.toDataURL("image/png")
             document.body.appendChild(link);
@@ -297,7 +306,8 @@
 
                 // hack to download two file before starting diffing
                 if (files_downloaded_count < 2) {
-                    download_canvas(canvas)
+                    filename = make_filename(0)
+                    download_canvas(canvas, filename)
                 } else {
                     if (files_downloaded_count == 2) {
                         diff_interval = setInterval(diff_snapshot, config.diff_interval_in_milliseconds)
