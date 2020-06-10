@@ -12,6 +12,11 @@
             margin: 20px;
         }
 
+        #start_button {
+            font-size: 18px;
+            background-color: lightgreen;
+        }
+
         #live_motion_canvas {
             border: 1px solid black;
             background-color: green;
@@ -28,16 +33,16 @@
         }
 
         #config {
-            margin-top: 20px;
             margin-bottom: 20px;
-            padding: 20px;
-            border: 1px solid gray;
             width: 900px;
         }
 
         #config div {
-
+            background-color: lightgray;
             margin: 10px;
+            padding: 8px;
+            border-radius: 8px;
+            font-size: 14px;
         }
 
         #show_config {
@@ -61,6 +66,7 @@
         var video_el
         var score_el
         var score_el2
+        var start_button
 
         var capture_context
         var diff_context
@@ -83,6 +89,7 @@
             score_el2 = document.getElementById("score_el2")
             video_el = document.getElementById("video_el")
             video_el.autoplay = true
+            start_button = document.getElementById("start_button")
         }
 
         function init_video() {
@@ -104,7 +111,6 @@
         }
 
         function configure_elements() {
-
 
             config.downscale_visible_width = Math.round(config.width * config.downscale_visible_factor)
             config.downscale_visible_height = Math.round(config.height * config.downscale_visible_factor)
@@ -187,10 +193,34 @@
             return date_string
         }
 
+        function on_start_or_stop() {
+            if (start_button.innerText == "Start") {
+                
+                on_start()
+                start_button.innerText = "Stop"
+                start_button.style.backgroundColor = "red"
+            }
+            else {
+                on_stop()
+                start_button.innerText = "Start"
+                start_button.style.backgroundColor = "lightgreen"
+            }
+        }
 
         function on_start() {
-            // this will in turn call start_detecting_motion
-            init_video()
+            
+            if (first_time) {
+                first_time = false
+                init_video() // this will in turn call start_detecting_motion
+            }
+            else {
+                start_detecting_motion()
+            }
+        }
+
+        function on_stop() {
+            clearInterval(diff_interval)
+            clearTimeout(process_best_moment_timeout)
         }
 
         var files_downloaded_count
@@ -203,6 +233,7 @@
             // reset state
             first_capture = true
             cycle_index = 0
+            best_image_pct = 0
 
             if (config.enable_download) {
 
@@ -216,15 +247,9 @@
             } else {
                 diff_interval = setInterval(diff_snapshot, config.diff_interval_in_milliseconds)
             }
-
         }
 
-        function on_change_config() {
 
-            //clearInterval(diff_interval)
-            //clearTimeout(process_best_moment_timeout)
-
-        }
 
         function process_best_moment() {
             console.log("process_best_moment", cycle_index, config.cycle[cycle_index], best_image_pct)
@@ -369,19 +394,26 @@
 
 <body onload="on_load()">
 
-    <div id="first_div"></div>
-    <button id="start_button" onclick="on_start()">start</button>
-
+    <button id="start_button" onclick="on_start_or_stop()">Start</button>
+ 
     <div id="show_config">
         <a href="Javascript:on_show_config()">Show config</a>
     </div>
 
     <div id="config">
-        <div><a href="Javascript:on_hide_config()">Hide config</a></div>
+        <div><a href="Javascript:on_hide_config()">Hide config</a>
+        &nbsp;
+        Changes don't take effect until you restart the motion detection.
+        </div>
 
         <div>
             The logic compares the latest snapshot with the previous snapshot. It calculates what percentage of the
             pixels are different. If the percentage is above a threshold, then that is considered "motion".
+        </div>
+
+        <div>
+            Enable downloading snapshots where motion is detected. This will trigger two quick downloads at start in order to get Chrome to ask your permission to download multiple files.
+            <input id="enable_download_checkbox" type="checkbox"></input>
         </div>
 
         <div>
@@ -390,51 +422,49 @@
             For example, for "10 10 20 60 300 3600", report motion, then report again 10 seconds later (if there's
             motion detected), then 10 seconds later again, then 20 seconds
             after that, then 60 seconds after that, then 5 minutes after that, then one hour after that.
-            Then return to initial state.
+            Then return to initial state of detecting motion right away.
             <br>
-            <input onchange="on_change_config()" id="cycle_input" value="5 5 10 10 60 3600" size="60"></input>
+            <input id="cycle_input" value="5 5 10 10 60 3600" size="60"></input>
         </div>
-        <div>
-            Enable saving motion snapshots. This will trigger two quick downloads at start in order to get prompt Chrome to ask your permission to download multiple files.
-            <input onchange="on_change_config()" id="enable_download_checkbox" type="checkbox"></input>
-        </div>
+
         <div>
             Snapshot interval in milliseconds (0-1000):
-            <input onchange="on_change_config()" id="diff_interval_in_milliseconds_input" type="number" value="200"
+            <input id="diff_interval_in_milliseconds_input" type="number" value="200"
                 min="1" max="1000" size="4"></input>
         </div>
         <div>
             Pixel threshold - how different must a pixel (r + g + b values) be to be considered different from previous
             snapshot?
             (1-765):
-            <input onchange="on_change_config()" id="rgb_threshold_input" type="number" value="75" min="1"
+            <input id="rgb_threshold_input" type="number" value="75" min="1"
                 max="765"></input>
         </div>
 
         <div>
             Image threshold - percent of image pixels that must be different from previous snapshot to be considered
             motion (1-80):
-            <input onchange="on_change_config()" id="pct_of_pixels_threshold_input" type="number" value="15" min="1"
+            <input id="pct_of_pixels_threshold_input" type="number" value="15" min="1"
                 max="80"></input>
 
         </div>
 
         <div>
-            Image threshold ceiling - when the percent is too high, that seems to be some sort of glitch (81-100)
-            <input onchange="on_change_config()" id="image_pct_ceiling_input" type="number" value="85" min="81"
+            Image threshold ceiling - there seem to be glitches where the logic reports 90%+ of the pixels changing. 
+            This is to prevent false alarms (81-100):
+            <input id="image_pct_ceiling_input" type="number" value="85" min="81"
                 max="100"></input>
 
         </div>
 
         <div>
             Downscale full image for on screen display this factor (.1 to 1.0):
-            <input onchange="on_change_config()" id="downscale_visible_factor_input" type="number" value=".5" min=".1"
+            <input id="downscale_visible_factor_input" type="number" value=".5" min=".1"
                 max="1.0" step=".1"></input>
         </div>
 
         <div>
             Downscale full image for pixel analysis by this factor. Bigger is slower. (.1 to 1.0):
-            <input onchange="on_change_config()" id="downscale_invisible_factor_input" type="number" value=".2" min=".1"
+            <input id="downscale_invisible_factor_input" type="number" value=".2" min=".1"
                 max="1.0" step=".1"></input>
         </div>
 
