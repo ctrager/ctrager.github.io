@@ -200,12 +200,11 @@
 
         function on_start_or_stop() {
             if (start_button.innerText == "Start") {
-                
+
                 on_start()
                 start_button.innerText = "Stop"
                 start_button.style.backgroundColor = "red"
-            }
-            else {
+            } else {
                 on_stop()
                 start_button.innerText = "Start"
                 start_button.style.backgroundColor = "lightgreen"
@@ -213,12 +212,14 @@
         }
 
         function on_start() {
-            
+            console.log("on_start")
             if (first_time) {
+                console.log("first_time")
+                load_config()
                 first_time = false
                 init_video() // this will in turn call start_detecting_motion
-            }
-            else {
+
+            } else {
                 start_detecting_motion()
             }
         }
@@ -226,13 +227,28 @@
         function on_stop() {
             clearInterval(diff_interval)
             clearTimeout(process_best_moment_timeout)
-            video_el.pause()
+            //video_el.pause()
         }
 
-        var files_downloaded_count
+        var first_download = true
+        var heartbeat
 
         function start_detecting_motion() {
-            video_el.play()
+
+            // force chrome to prompt
+            if (config.enable_download) {
+                if (first_download) {
+                    first_download = false
+                    download_two_text_files_to_force_prompt_for_permission()
+                }
+            }
+
+            if (config.enable_download) {
+                // write tiny text file every 30 minutes
+                setInterval(heartbeat, 60 * 1000 * 30)
+            }
+
+            //video_el.play()
             load_config()
             on_hide_config()
             configure_elements()
@@ -242,22 +258,12 @@
             cycle_index = 0
             best_image_pct = 0
 
-            if (config.enable_download) {
-
-                files_downloaded_count = 0
-
-                // we want to do two dummy downloads to trigger Chrome's
-                // "Download Multiple Files?" permission dialog
-                var filename = make_filename(0)
-                download_canvas(capture_canvas_el, filename)
-
-            } else {
-                diff_interval = setInterval(diff_snapshot, config.diff_interval_in_milliseconds)
-            }
+            diff_interval = setInterval(diff_snapshot, config.diff_interval_in_milliseconds)
         }
 
-        function make_filename(score) {
-            return "motion_" + get_yyyy_mm_dd_hh_mm_ss(new Date()) + "_score_" + score + ".png"
+        function heartbeat() {
+            var filename = "heartbeat_" + get_yyyy_mm_dd_hh_mm_ss(new Date()) + ".txt"
+            download_textfile("", filename)
         }
 
         function process_best_moment() {
@@ -288,31 +294,59 @@
             }
         }
 
+        function download_two_text_files_to_force_prompt_for_permission() {
+            var filename = "text_" + get_yyyy_mm_dd_hh_mm_ss(new Date())
+            download_textfile("hello", filename + "_1st.txt")
+            // There's some sort of race condition that leads to "not allowed to load local resource"
+            // Introducing this delay fixes it
+            setTimeout(()=>download_textfile("hello", filename + "_2nd.txt"), 1000)
+        }
+
+        function make_filename(score) {
+            return "motion_" + get_yyyy_mm_dd_hh_mm_ss(new Date()) + "_score_" + score + ".png"
+        }
+
+        // https://jsfiddle.net/UselessCode/qm5AG/
+        var text_file_object_url
+
+        function download_textfile(text, filename) {
+
+            var data = new Blob([text], {
+                type: 'text/plain'
+            });
+
+            // If we are replacing a previously generated file we need to
+            // manually revoke the object URL to avoid memory leaks.
+            if (text_file_object_url !== null) {
+                window.URL.revokeObjectURL(text_file_object_url);
+            }
+
+            text_file_object_url = window.URL.createObjectURL(data);
+            var href_payload = text_file_object_url
+
+            create_and_click_on_download_link(filename, href_payload)
+        }
+
         function download_canvas(canvas, filename) {
-            console.log("download started")
+            var href_payload = canvas.toDataURL("image/png")
+            create_and_click_on_download_link(filename, href_payload)
+        }
+
+        function create_and_click_on_download_link(filename, href_payload) {
             var link = document.createElement('a');
             link.setAttribute("download", filename)
-            link.href = canvas.toDataURL("image/png")
+            link.href = href_payload
+
             document.body.appendChild(link);
 
-            // wait for the link to be added to the document
+            //link.innerText = "corey was here"
+
+            // wait for the link to be added to the document, then "click" it
             window.requestAnimationFrame(function () {
                 // clicking link
                 var event = new MouseEvent('click');
                 link.dispatchEvent(event);
                 document.body.removeChild(link);
-                console.log("download ended " + filename)
-                files_downloaded_count++
-
-                // hack to download two file before starting diffing
-                if (files_downloaded_count < 2) {
-                    filename = make_filename(0)
-                    download_canvas(canvas, filename)
-                } else {
-                    if (files_downloaded_count == 2) {
-                        diff_interval = setInterval(diff_snapshot, config.diff_interval_in_milliseconds)
-                    }
-                }
             })
         }
 
@@ -405,15 +439,15 @@
 <body onload="on_load()">
 
     <button id="start_button" onclick="on_start_or_stop()">Start</button>
- 
+
     <div id="show_config">
         <a href="Javascript:on_show_config()">Show config</a>
     </div>
 
     <div id="config">
         <div><a href="Javascript:on_hide_config()">Hide config</a>
-        &nbsp;
-        Changes don't take effect until you restart the motion detection.
+            &nbsp;
+            Changes don't take effect until you restart the motion detection.
         </div>
 
         <div>
@@ -422,7 +456,8 @@
         </div>
 
         <div>
-            Enable downloading snapshots where motion is detected. This will trigger two quick downloads at start in order to get Chrome to ask your permission to download multiple files.
+            Enable downloading snapshots where motion is detected. This will trigger two quick downloads at start in
+            order to get Chrome to ask your permission to download multiple files.
             <input id="enable_download_checkbox" type="checkbox"></input>
         </div>
 
@@ -434,48 +469,43 @@
             after that, then 60 seconds after that, then 5 minutes after that, then one hour after that.
             Then return to initial state of detecting motion right away.
             <br>
-            <input id="cycle_input" value="5 5 10 10 60 3600" size="60"></input>
+            <input id="cycle_input" value="4 4 4 4 10 10 1800" size="60"></input>
         </div>
 
         <div>
             Snapshot interval in milliseconds (0-1000):
-            <input id="diff_interval_in_milliseconds_input" type="number" value="200"
-                min="1" max="1000" size="4"></input>
+            <input id="diff_interval_in_milliseconds_input" type="number" value="200" min="1" max="1000"
+                size="4"></input>
         </div>
         <div>
             Pixel threshold - how different must a pixel (r + g + b values) be to be considered different from previous
             snapshot?
             (1-765):
-            <input id="rgb_threshold_input" type="number" value="75" min="1"
-                max="765"></input>
+            <input id="rgb_threshold_input" type="number" value="75" min="1" max="765"></input>
         </div>
 
         <div>
             Image threshold - percent of image pixels that must be different from previous snapshot to be considered
             motion (1-80):
-            <input id="pct_of_pixels_threshold_input" type="number" value="15" min="1"
-                max="80"></input>
+            <input id="pct_of_pixels_threshold_input" type="number" value="15" min="1" max="80"></input>
 
         </div>
 
         <div>
-            Image threshold ceiling - there seem to be glitches where the logic reports 90%+ of the pixels changing. 
+            Image threshold ceiling - there seem to be glitches where the logic reports 90%+ of the pixels changing.
             This is to prevent false alarms (81-100):
-            <input id="image_pct_ceiling_input" type="number" value="85" min="81"
-                max="100"></input>
+            <input id="image_pct_ceiling_input" type="number" value="85" min="81" max="100"></input>
 
         </div>
 
         <div>
             Downscale full image for on screen display this factor (.1 to 1.0):
-            <input id="downscale_visible_factor_input" type="number" value=".5" min=".1"
-                max="1.0" step=".1"></input>
+            <input id="downscale_visible_factor_input" type="number" value=".9" min=".1" max="1.0" step=".1"></input>
         </div>
 
         <div>
             Downscale full image for pixel analysis by this factor. Bigger is slower. (.1 to 1.0):
-            <input id="downscale_invisible_factor_input" type="number" value=".2" min=".1"
-                max="1.0" step=".1"></input>
+            <input id="downscale_invisible_factor_input" type="number" value=".1" min=".1" max="1.0" step=".1"></input>
         </div>
 
 
